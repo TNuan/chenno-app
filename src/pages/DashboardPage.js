@@ -3,7 +3,7 @@ import WorkspaceList from '../components/Workspace/WorkspaceList';
 
 const DashboardPage = () => {
   return (
-    <div>
+    <div className="min-h-screen bg-gray-100">
       <WorkspaceList />
     </div>
   );
