@@ -1,104 +1,132 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { FiTrello, FiGrid, FiFolder, FiCalendar, FiBarChart2, FiSettings } from 'react-icons/fi';
+import { NavLink } from 'react-router-dom';
+import { 
+  FiHome, 
+  FiStar, 
+  FiGrid, 
+  FiCalendar, 
+  FiArchive, 
+  FiUsers, 
+  FiFolder,
+  FiPlus,
+  FiChevronDown,
+  FiChevronRight
+} from 'react-icons/fi';
 
 const Sidebar = () => {
-  const navigate = useNavigate();
-  const [isOpen, setIsOpen] = useState(true); // Trạng thái mở/đóng sidebar trên mobile
+  const [expandedWorkspace, setExpandedWorkspace] = useState(null);
 
-  const toggleSidebar = () => {
-    setIsOpen(!isOpen);
-  };
+  const workspaces = [
+    { id: 1, name: 'Personal', boards: ['Tasks', 'Notes', 'Ideas'] },
+    { id: 2, name: 'Work', boards: ['Projects', 'Meetings', 'Goals'] },
+  ];
 
   return (
-    <div
-      className={`fixed top-16 left-0 h-[calc(100vh-4rem)] bg-gray-800 text-white transition-all duration-300 ${
-        isOpen ? 'w-64' : 'w-16'
-      } z-40 md:w-64 md:top-16`}
-    >
-      <div className="flex flex-col h-full">
-        {/* Toggle button (mobile) */}
-        <button
-          className="md:hidden p-4 text-white hover:bg-gray-700"
-          onClick={toggleSidebar}
-        >
-          {isOpen ? '✕' : '☰'}
-        </button>
+    <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
+      <div className="p-4 space-y-6">
+        {/* Main Navigation */}
+        <nav className="space-y-1">
+          <NavLink
+            to="/dashboard"
+            className={({ isActive }) =>
+              `flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all ${
+                isActive
+                  ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`
+            }
+          >
+            <FiHome className="mr-3 h-5 w-5" />
+            Dashboard
+          </NavLink>
 
-        {/* Menu items */}
-        <div className={`flex-1 overflow-y-auto ${isOpen ? 'block' : 'hidden md:block'}`}>
-          <nav className="p-4">
-            <ul className="space-y-2">
-              {/* Boards */}
-              <li>
-                <button
-                  onClick={() => navigate('/boards')}
-                  className="flex items-center w-full p-2 rounded-lg hover:bg-gray-700"
-                >
-                  <FiTrello className="mr-3" size={20} />
-                  {isOpen && <span>Boards</span>}
-                </button>
-              </li>
+          <NavLink
+            to="/favorites"
+            className={({ isActive }) =>
+              `flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all ${
+                isActive
+                  ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`
+            }
+          >
+            <FiStar className="mr-3 h-5 w-5" />
+            Yêu thích
+          </NavLink>
+        </nav>
 
-              {/* Templates */}
-              <li>
-                <button
-                  onClick={() => navigate('/templates')}
-                  className="flex items-center w-full p-2 rounded-lg hover:bg-gray-700"
-                >
-                  <FiGrid className="mr-3" size={20} />
-                  {isOpen && <span>Templates</span>}
-                </button>
-              </li>
+        {/* Workspaces */}
+        <div>
+          <div className="flex items-center justify-between px-3 mb-2">
+            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Workspaces
+            </h3>
+            <button 
+              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
+              title="Thêm workspace"
+            >
+              <FiPlus size={16} className="text-gray-500 dark:text-gray-400" />
+            </button>
+          </div>
 
-              {/* Workspace */}
-              <li>
+          <div className="space-y-1">
+            {workspaces.map((workspace) => (
+              <div key={workspace.id}>
                 <button
-                  onClick={() => navigate('/workspaces')}
-                  className="flex items-center w-full p-2 rounded-lg hover:bg-gray-700"
+                  onClick={() => setExpandedWorkspace(
+                    expandedWorkspace === workspace.id ? null : workspace.id
+                  )}
+                  className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                 >
-                  <FiFolder className="mr-3" size={20} />
-                  {isOpen && <span>Workspace</span>}
+                  <div className="flex items-center">
+                    <FiFolder className="mr-3 h-5 w-5" />
+                    {workspace.name}
+                  </div>
+                  {expandedWorkspace === workspace.id ? (
+                    <FiChevronDown className="h-4 w-4" />
+                  ) : (
+                    <FiChevronRight className="h-4 w-4" />
+                  )}
                 </button>
-              </li>
 
-              {/* My Calendar */}
-              <li>
-                <button
-                  onClick={() => navigate('/calendar')}
-                  className="flex items-center w-full p-2 rounded-lg hover:bg-gray-700"
-                >
-                  <FiCalendar className="mr-3" size={20} />
-                  {isOpen && <span>My Calendar</span>}
-                </button>
-              </li>
+                {expandedWorkspace === workspace.id && (
+                  <div className="ml-9 mt-1 space-y-1">
+                    {workspace.boards.map((board) => (
+                      <button
+                        key={board}
+                        className="flex items-center w-full px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                      >
+                        <FiGrid className="mr-3 h-4 w-4" />
+                        {board}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
 
-              {/* Reports */}
-              <li>
-                <button
-                  onClick={() => navigate('/reports')}
-                  className="flex items-center w-full p-2 rounded-lg hover:bg-gray-700"
-                >
-                  <FiBarChart2 className="mr-3" size={20} />
-                  {isOpen && <span>Reports</span>}
-                </button>
-              </li>
-
-              {/* Settings */}
-              <li>
-                <button
-                  onClick={() => navigate('/settings')}
-                  className="flex items-center w-full p-2 rounded-lg hover:bg-gray-700"
-                >
-                  <FiSettings className="mr-3" size={20} />
-                  {isOpen && <span>Settings</span>}
-                </button>
-              </li>
-            </ul>
-          </nav>
+        {/* Quick Actions */}
+        <div>
+          <div className="px-3 mb-2">
+            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Quick Actions
+            </h3>
+          </div>
+          <div className="space-y-1">
+            <button className="flex items-center w-full px-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-lg transition-colors">
+              <FiPlus className="mr-3 h-5 w-5" />
+              Tạo Board mới
+            </button>
+            <button className="flex items-center w-full px-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-lg transition-colors">
+              <FiUsers className="mr-3 h-5 w-5" />
+              Invite Team
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </aside>
   );
 };
 

@@ -15,6 +15,7 @@ const WorkspaceList = () => {
         setWorkspaces(data.workspaces);
         setLoading(false);
       } catch (err) {
+        console.error(err);
         setError(err.response?.data?.message || 'Lỗi khi lấy danh sách workspaces');
         setLoading(false);
       }
