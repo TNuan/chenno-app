@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import BoardsPage from './pages/BoardsPage';
@@ -7,6 +7,8 @@ import Header from './components/Header/Header';
 import Sidebar from './components/Sidebar/Sidebar';
 import { ThemeProvider } from './context/ThemeContext';
 import DashboardPage from './pages/DashboardPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
+import HomePage from './pages/HomePage';
 
 // Layout cho các trang được bảo vệ
 const DashboardLayout = ({ children }) => (
@@ -21,89 +23,24 @@ const DashboardLayout = ({ children }) => (
   </div>
 );
 
-// Route được bảo vệ
-const ProtectedRoute = ({ children }) => {
-  const token = localStorage.getItem('token');
-  return token ? children : <Navigate to="/login" />;
+const PrivateRoute = ({ children }) => {
+  const token = localStorage.getItem('accessToken');
+  return token ? children : <Navigate to="/login" replace />;
 };
-
-// Route công khai
-const PublicRoute = ({ children }) => {
-  const token = localStorage.getItem('token');
-  return token ? <Navigate to="/dashboard" /> : children;
-};
-
-// Cấu hình routes
-const routes = [
-  {
-    path: '/dashboard',
-    component: <DashboardPage />
-  },
-  {
-    path: '/boards',
-    component: <BoardsPage />
-  },
-  {
-    path: '/templates',
-    component: <h1 className="p-6 text-2xl font-semibold">Templates Page</h1>
-  },
-  {
-    path: '/workspaces',
-    component: <h1 className="p-6 text-2xl font-semibold">Workspaces Page</h1>
-  },
-  {
-    path: '/calendar',
-    component: <h1 className="p-6 text-2xl font-semibold">My Calendar Page</h1>
-  },
-  {
-    path: '/reports',
-    component: <h1 className="p-6 text-2xl font-semibold">Reports Page</h1>
-  },
-  {
-    path: '/settings',
-    component: <h1 className="p-6 text-2xl font-semibold">Settings Page</h1>
-  }
-];
 
 function App() {
   return (
     <ThemeProvider>
       <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 dark:text-white">
-        <Router>
+        <BrowserRouter>
           <Routes>
             {/* Public Routes */}
-            <Route
-              path="/login"
-              element={
-                  <LoginPage />
-              }
-            />
-            <Route
-              path="/register"
-              element={
-                <PublicRoute>
-                  <RegisterPage />
-                </PublicRoute>
-              }
-            />
-
-            {/* Protected Routes */}
-            {routes.map(({ path, component }) => (
-              <Route
-                key={path}
-                path={path}
-                element={
-                  <ProtectedRoute>
-                    <DashboardLayout>
-                      {component}
-                    </DashboardLayout>
-                  </ProtectedRoute>
-                }
-              />
-            ))}
-
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
+            
             {/* Default Routes */}
-            <Route path="/" element={<Navigate to="/dashboard" />} />
+            <Route path="/" element={<PrivateRoute><HomePage/></PrivateRoute>} />
             
             {/* 404 Route */}
             <Route
@@ -128,7 +65,7 @@ function App() {
               }
             />
           </Routes>
-        </Router>
+        </BrowserRouter>
       </div>
     </ThemeProvider>
   );

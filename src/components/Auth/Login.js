@@ -1,59 +1,75 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../../services/api';
-import { useAuth } from '../../hooks/useAuth';
+import { ToastContainer, toast } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const navigate = useNavigate();
-  // const { isAuthenticated, isLoading } = useAuth();
+  const [values, setValue] = useState({
+    email: '',
+    password: ''
+  })
 
-  // useEffect(() => {
-  //   if (isAuthenticated) {
-  //     navigate('/dashboard');
-  //   }
-  // }, [isAuthenticated, navigate]);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const data = await login(email, password);
-      // Lưu token và thời gian hết hạn
-      localStorage.setItem('token', data.accessToken);
-      localStorage.setItem('refreshToken', data.refreshToken);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      navigate('/dashboard');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Đăng nhập thất bại');
+  const handleSubmit = async (event) => {
+    event.preventDefault()
+    if (handleValidation()) {
+      login(values).then(data => {
+        if (data.status === false) {
+          toast.error(data.msg, toastOptions)
+        }
+        if (data.status === true) {
+          localStorage.setItem('user', JSON.stringify(data.user))
+          localStorage.setItem('accessToken', data.accessToken)
+          navigate('/')
+        }
+      })
     }
-  };
+  }
 
-  // if (isLoading) {
-  //   return (
-  //     <div className="flex justify-center items-center min-h-screen">
-  //       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-  //     </div>
-  //   );
-  // }
+  const toastOptions = {
+    position: 'bottom-right',
+    autoClose: 8000,
+    pauseOnHover: true,
+    draggable: true,
+    theme: 'dark'
+  }
 
-  // if (isAuthenticated) {
-  //   return null;
-  // }
+  const handleValidation = () => {
+    const { email, password } = values
+    console.log('values', values)
+    if (email === '' || password === '') {
+      toast.error('Email and Password is requied', toastOptions)
+      return false
+    }
+
+    return true
+  }
+
+  const handleChange = (event) => {
+    setValue({ ...values, [event.target.name]: event.target.value })
+  }
 
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-center">Đăng nhập</h2>
-      {error && <p className="text-red-500 mb-4">{error}</p>}
+      {/* <h2 className="text-2xl font-bold mb-6 text-center">Đăng nhập</h2> */}
+      <div className="flex items-center justify-center mb-6 group cursor-pointer">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-400 dark:from-blue-500 dark:to-blue-300 p-4 rounded-xl mr-3 group-hover:scale-105 transition-all duration-300">
+          <span className="text-2xl font-bold text-white">IT</span>
+        </div>
+        <span className="text-2xl font-bold text-blue-600  group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors duration-300">
+          Kv1
+        </span>
+      </div>
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
           <label className="block text-gray-700">Email</label>
           <input
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(event) => handleChange(event)}
+            name="email"
             className="w-full p-2 border rounded"
+            min="3"
             required
           />
         </div>
@@ -61,8 +77,8 @@ const Login = () => {
           <label className="block text-gray-700">Mật khẩu</label>
           <input
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(event) => handleChange(event)}
+            name="password"
             className="w-full p-2 border rounded"
             required
           />
@@ -80,6 +96,7 @@ const Login = () => {
           Đăng ký
         </a>
       </p>
+      <ToastContainer />
     </div>
   );
 };

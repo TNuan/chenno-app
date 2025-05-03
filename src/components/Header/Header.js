@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { FiBell, FiInfo, FiLogOut, FiUser, FiSettings, FiMoon, FiSun, FiSearch } from 'react-icons/fi';
 import Avatar from 'react-avatar';
 import { ThemeContext } from '../../context/ThemeContext';
+import { logout } from '../../services/api';
 
 const Header = () => {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
@@ -12,8 +13,15 @@ const Header = () => {
   const [isLoaded, setIsLoaded] = useState(false);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
+    logout().then(data => {
+      if (data.status === true) {
+        localStorage.removeItem('user');
+        localStorage.removeItem('accessToken');
+        navigate('/login');
+      } else {
+        console.error(data.message);
+      }
+    })
   };
 
   useEffect(() => {
@@ -33,7 +41,7 @@ const Header = () => {
           {/* Logo Section */}
           <div className="flex items-center space-x-8">
             <div
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/')}
               className="flex items-center cursor-pointer group"
             >
               <div className="bg-gradient-to-r from-blue-600 to-blue-400 p-2 rounded-lg mr-2 group-hover:scale-105 transition-transform">

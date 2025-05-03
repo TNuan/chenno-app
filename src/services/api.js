@@ -1,69 +1,75 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3000/api', // Địa chỉ API của bạn
+  baseURL: 'http://localhost:3000/api',
   headers: {
     'Content-Type': 'application/json',
+    Accept: 'application/json',
   },
+  withCredentials: true, // Gửi cookie (refresh token) trong request
 });
 
-
-// Thêm interceptor để tự động refresh token
-api.interceptors.request.use(async (config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    // Decode token để kiểm tra thời gian hết hạn
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    const expirationTime = payload.exp * 1000; // Convert to milliseconds
-    const currentTime = Date.now();
-    const timeUntilExpiry = expirationTime - currentTime;
-
-    // Nếu token sắp hết hạn (ít hơn 5 phút)
-    if (timeUntilExpiry < 300000) {
-      try {
-        const data = await refreshToken();
-        localStorage.setItem('token', data.accessToken);
-        config.headers.Authorization = `Bearer ${data.accessToken}`;
-      } catch (error) {
-        // Nếu refresh token thất bại, đăng xuất user
-        localStorage.clear();
-        window.location.href = '/login';
-      }
-    } else {
+// Interceptor cho request: gắn accessToken nếu có
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('accessToken');
+    if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-  }
-  return config;
-}, (error) => {
-  return Promise.reject(error);
-});
+    return config;
+  },
+  (err) => Promise.reject(err)
+);
 
-// Interceptor xử lý lỗi response
+// Interceptor xử lý 401 và tự động gọi refresh token
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+  async (err) => {
+    const originalRequest = err.config;
+
+    if (err.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      try {
+        const res = await api.post('/auth/refresh-token');
+        const newToken = res.data.accessToken;
+
+        // Lưu access token mới
+        localStorage.setItem('accessToken', newToken);
+
+        // Gắn lại access token vào request cũ
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+
+        // Gửi lại request cũ
+        return api(originalRequest);
+      } catch (refreshError) {
+        // Refresh token không còn hiệu lực
+        localStorage.removeItem('accessToken');
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
     }
-    return Promise.reject(error);
+
+    return Promise.reject(err);
   }
 );
 
-// API calls
-export const login = async (email, password) => {
-  const response = await api.post('/auth/login', { email, password });
+export const login = async (data) => {
+  const response = await api.post('/auth/login', data);
   return response.data;
 };
 
-export const register = async (username, email, password) => {
-  const response = await api.post('/auth/register', { username, email, password });
+export const register = async (data) => {
+  const response = await api.post('/auth/register', data);
   return response.data;
 };
 
-export const refreshToken = async () => {
-  const refreshToken = localStorage.getItem('refreshToken');
-  const response = await api.post('/auth/refresh-token', { refreshToken });
+export const verifyEmail = async (token) => {
+  const response = await api.post('/auth/verify-email', { token });
+  return response.data;
+};
+
+export const logout = async (data) => {
+  const response = await api.post('/auth/logout', data);
   return response.data;
 };
 
