@@ -1,55 +1,130 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { register } from '../../services/api';
+import { ToastContainer, toast } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 const Register = () => {
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const navigate = useNavigate();
+
+  const [values, setValue] = useState({
+    username: '',
+    email: '',
+    password: '',
+    repeat_password: ''
+  })
+
+  const toastOptions = {
+    position: 'bottom-right',
+    autoClose: 5000,
+    pauseOnHover: true,
+    draggable: true,
+    theme: 'dark'
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      await register(username, email, password);
-      navigate('/login');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Đăng ký thất bại');
+    if (handleValidation()) {
+      register(values).then(data => {
+        if (data.status === false) {
+          toast.error(data.msg, toastOptions)
+        }
+        if (data.status === true) {
+          console.log(data)
+          // localStorage.setItem('user', JSON.stringify(data.user))
+          // navigate('/')
+        }
+      })
     }
   };
 
+  const handleValidation = () => {
+    const { username, email, password, repeat_password } = values
+    if (email === '') {
+      toast.error('email is requied', toastOptions)
+      return false
+    }
+
+    if (password !== repeat_password) {
+      toast.error(
+        'password and confirm password should be same! ',
+        toastOptions
+      )
+      return false
+    }
+
+    if (username.length < 3) {
+      toast.error(
+        'Username should be greater than 3 characters',
+        toastOptions
+      )
+      return false
+    }
+
+    if (password.length < 8) {
+      toast.error(
+        'Password should be greater than 8 characters',
+        toastOptions
+      )
+      return false
+    }
+
+    return true
+  }
+
+  const handleChange = (event) => {
+    setValue({ ...values, [event.target.name]: event.target.value })
+  }
+
   return (
     <div className="max-w-md mx-auto mt-10 p-6 bg-white rounded-lg shadow-md">
-      <h2 className="text-2xl font-bold mb-6 text-center">Đăng ký</h2>
-      {error && <p className="text-red-500 mb-4">{error}</p>}
+      <div className="flex items-center justify-center mb-6">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-400 p-4 rounded-xl mr-3 group-hover:scale-105 transition-transform">
+          <span className="text-2xl font-bold text-white">IT</span>
+        </div>
+        <span className="text-2xl font-bold text-gray-800 dark:text-white group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">
+          Kv1
+        </span>
+      </div>
+
+      {/* {error && <p className="text-red-500 mb-4">{error}</p>} */}
       <form onSubmit={handleSubmit}>
         <div className="mb-4">
-          <label className="block text-gray-700">Tên người dùng</label>
+          {/* <label className="block text-gray-700">Tên người dùng</label> */}
           <input
             type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Username"
+            name="username" onChange={(event) => handleChange(event)}
             className="w-full p-2 border rounded"
             required
           />
         </div>
         <div className="mb-4">
-          <label className="block text-gray-700">Email</label>
+          {/* <label className="block text-gray-700">Email</label> */}
           <input
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+            name="email" onChange={(event) => handleChange(event)}
             className="w-full p-2 border rounded"
             required
           />
         </div>
         <div className="mb-4">
-          <label className="block text-gray-700">Mật khẩu</label>
+          {/* <label className="block text-gray-700">Mật khẩu</label> */}
           <input
             type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            name="password" onChange={(event) => handleChange(event)}
+            className="w-full p-2 border rounded"
+            required
+          />
+        </div>
+        <div className="mb-4">
+          {/* <label className="block text-gray-700">Nhập lại mật khẩu</label> */}
+          <input
+            type="password"
+            placeholder="Confirm Password"
+            name="repeat_password" onChange={(event) => handleChange(event)}
             className="w-full p-2 border rounded"
             required
           />
@@ -67,6 +142,7 @@ const Register = () => {
           Đăng nhập
         </a>
       </p>
+      <ToastContainer />
     </div>
   );
 };
