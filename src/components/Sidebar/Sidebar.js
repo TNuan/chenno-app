@@ -27,7 +27,7 @@ const Sidebar = () => {
         {/* Main Navigation */}
         <nav className="space-y-1">
           <NavLink
-            to="/dashboard"
+            to="/"
             className={({ isActive }) =>
               `flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all ${
                 isActive
@@ -37,7 +37,7 @@ const Sidebar = () => {
             }
           >
             <FiHome className="mr-3 h-5 w-5" />
-            Dashboard
+            Home
           </NavLink>
 
           <NavLink
@@ -51,7 +51,21 @@ const Sidebar = () => {
             }
           >
             <FiStar className="mr-3 h-5 w-5" />
-            Yêu thích
+            Favorites
+          </NavLink>
+
+          <NavLink
+            to="/calendar"
+            className={({ isActive }) =>
+              `flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all ${
+                isActive
+                  ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                  : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
+              }`
+            }
+          >
+            <FiCalendar className="mr-3 h-5 w-5" />
+            Calendar
           </NavLink>
         </nav>
 

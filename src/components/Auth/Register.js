@@ -30,9 +30,10 @@ const Register = () => {
           toast.error(data.msg, toastOptions)
         }
         if (data.status === true) {
-          console.log(data)
-          // localStorage.setItem('user', JSON.stringify(data.user))
-          // navigate('/')
+          alert('Đăng ký thành công, vui lòng kiểm tra email để xác thực tài khoản!')
+          // Mở Gmail trong tab mới
+          window.open('https://mail.google.com', '_blank')
+          navigate('/login')
         }
       })
     }

@@ -40,8 +40,7 @@ function App() {
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             
             {/* Default Routes */}
-            <Route path="/" element={<PrivateRoute><HomePage/></PrivateRoute>} />
-            
+            <Route path="/*" element={<PrivateRoute><HomePage/></PrivateRoute>} />
             {/* 404 Route */}
             <Route
               path="*"
