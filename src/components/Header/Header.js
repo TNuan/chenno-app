@@ -41,7 +41,7 @@ const Header = () => {
           {/* Logo Section */}
           <div className="flex items-center space-x-8">
             <div
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/h')}
               className="flex items-center cursor-pointer group"
             >
               <div className="bg-gradient-to-r from-blue-600 to-blue-400 p-2 rounded-lg mr-2 group-hover:scale-105 transition-transform">

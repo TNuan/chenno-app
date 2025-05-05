@@ -1,9 +1,11 @@
 import React from 'react';
 import { Route, Routes } from 'react-router-dom';
 import WorkspaceList from '../components/Workspace/WorkspaceList';
+import RecentlyBoards from '../components/Board/RecentlyBoards';
 import BoardList from '../components/Board/BoardList';
 import Header from '../components/Header/Header';
 import Sidebar from '../components/Sidebar/Sidebar';
+import BoardListByWorkspace from '../components/Board/BoardListByWorkspace';
 
 const HomePage = () => {
   return (
@@ -20,15 +22,22 @@ const HomePage = () => {
                   element={
                     <>
                       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-                        Dashboard
+                        Home
                       </h1>
                       <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
                         <div className="grid gap-6">
+                          <div className="space-y-6">
+                            <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
+                              Recently Viewed
+                            </h2>
+                            <RecentlyBoards />
+                          </div>
+
                           <div className="space-y-4">
                             <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
                               Your Workspaces
                             </h2>
-                            <WorkspaceList />
+                            <BoardListByWorkspace />
                           </div>
                         </div>
                       </div>

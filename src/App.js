@@ -9,6 +9,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import DashboardPage from './pages/DashboardPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import HomePage from './pages/HomePage';
+import WorkspacePage from './pages/WorkspacePage';
 
 // Layout cho các trang được bảo vệ
 const DashboardLayout = ({ children }) => (
@@ -34,13 +35,19 @@ function App() {
       <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 dark:text-white">
         <BrowserRouter>
           <Routes>
+            {/* Root Redirect */}
+            <Route path="/" element={<Navigate to="/h" replace />} />
+
             {/* Public Routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/verify-email" element={<VerifyEmailPage />} />
             
-            {/* Default Routes */}
-            <Route path="/*" element={<PrivateRoute><HomePage/></PrivateRoute>} />
+            {/* Protected Routes */}
+            <Route path="/h/*" element={<PrivateRoute><HomePage/></PrivateRoute>} />
+            <Route path="/w/:workspaceId/*" element={<PrivateRoute><WorkspacePage/></PrivateRoute>} />
+            <Route path="/b/:boardId/*" element={<PrivateRoute><BoardsPage/></PrivateRoute>} />
+
             {/* 404 Route */}
             <Route
               path="*"
