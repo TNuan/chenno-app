@@ -1,29 +1,30 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getRecentlyBoards } from '../../services/api';
-import { FiClock, FiStar } from 'react-icons/fi';
+import { getBoardsByWorkspace } from '../../services/api';
+import { FiGrid, FiStar } from 'react-icons/fi';
 
-const RecentlyBoards = () => {
-  const [recentBoards, setRecentBoards] = useState([]);
+const BoardsByWorkspace = ({ workspaceId }) => {
+  const [boards, setBoards] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchRecentBoards = async () => {
+    const fetchBoards = async () => {
       try {
-        console.log('Fetching recent boards...');
-        const response = await getRecentlyBoards();
-        setRecentBoards(response.boards);
+        const response = await getBoardsByWorkspace(workspaceId);
+        setBoards(response.boards);
         setIsLoading(false);
       } catch (err) {
-        setError('Failed to load recent boards');
+        setError('Failed to load workspace boards');
         setIsLoading(false);
       }
     };
 
-    fetchRecentBoards();
-  }, []);
+    if (workspaceId) {
+      fetchBoards();
+    }
+  }, [workspaceId]);
 
   if (isLoading) {
     return (
@@ -43,24 +44,32 @@ const RecentlyBoards = () => {
     );
   }
 
-  if (recentBoards.length === 0) {
+  if (boards.length === 0) {
     return (
       <div className="text-center py-8">
-        <FiClock className="mx-auto h-12 w-12 text-gray-400" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No recent boards</h3>
+        <FiGrid className="mx-auto h-12 w-12 text-gray-400" />
+        <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">
+          No boards found
+        </h3>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Your recently viewed boards will appear here
+          Get started by creating a new board
         </p>
+        <button
+          onClick={() => navigate(`/w/${workspaceId}/create-board`)}
+          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+        >
+          Create Board
+        </button>
       </div>
     );
   }
 
   return (
     <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-      {recentBoards.map((board) => (
+      {boards.map((board) => (
         <div
           key={board.id}
-          onClick={() => navigate(`/board/${board.id}`)}
+          onClick={() => navigate(`/b/${board.id}`)}
           className="group relative bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow p-4 cursor-pointer"
         >
           {/* Board Background */}
@@ -85,25 +94,22 @@ const RecentlyBoards = () => {
                   // Add favorite logic here
                 }}
               >
-                <FiStar className="h-5 w-5 text-gray-400 hover:text-yellow-400" />
+                <FiStar className={`h-5 w-5 ${
+                  board.is_favorite 
+                    ? 'text-yellow-400 fill-current' 
+                    : 'text-gray-400 hover:text-yellow-400'
+                }`} />
               </button>
             </div>
 
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {board.description || 'Personal'}
+              {board.description || 'No description'}
             </p>
 
-            {/* Last Visited */}
+            {/* Creation Date */}
             <div className="mt-4 flex items-center text-sm text-gray-500 dark:text-gray-400">
-              <FiClock className="mr-1.5 h-4 w-4" />
               <span>
-                Last visited {new Date(board.viewed_at).toLocaleString('vi-VN', {
-                  year: 'numeric',
-                  month: 'numeric',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
+                Created {new Date(board.created_at).toLocaleDateString('vi-VN')}
               </span>
             </div>
           </div>
@@ -113,4 +119,4 @@ const RecentlyBoards = () => {
   );
 };
 
-export default RecentlyBoards;
+export default BoardsByWorkspace;

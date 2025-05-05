@@ -1,5 +1,6 @@
 import React from 'react';
 import WorkspaceList from '../components/Workspace/WorkspaceList';
+import RecentlyBoards from '../components/Board/RecentlyBoards';
 
 const DashboardPage = () => {
   return (
@@ -16,6 +17,12 @@ const DashboardPage = () => {
                 Your Workspaces
               </h2>
               <WorkspaceList />
+            </div>
+            <div className="space-y-6">
+              <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
+                Recently Viewed
+              </h2>
+              <RecentlyBoards />
             </div>
           </div>
         </div>

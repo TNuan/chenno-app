@@ -43,6 +43,8 @@ api.interceptors.response.use(
         return api(originalRequest);
       } catch (refreshError) {
         // Refresh token không còn hiệu lực
+        alert('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
+        localStorage.removeItem('user');
         localStorage.removeItem('accessToken');
         window.location.href = '/login';
         return Promise.reject(refreshError);
@@ -78,9 +80,23 @@ export const getWorkspaces = async () => {
   return response.data;
 };
 
+export const getBoardsByWorkspace = async (workspaceId) => {
+  const response = await api.get(`/boards/${workspaceId}`);
+  return response.data;
+};
+
 export const getBoards = async () => {
   const response = await api.get('/boards');
   return response.data;
 };
 
+export const getRecentlyBoards = async () => {
+  const response = await api.get('/boards/user/recent-boards');
+  return response.data;
+};
+
+export const getAllBoards = async () => {
+  const response = await api.get('/boards/user/boards');
+  return response.data;
+}
 export default api;

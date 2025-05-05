@@ -27,7 +27,7 @@ const Sidebar = () => {
         {/* Main Navigation */}
         <nav className="space-y-1">
           <NavLink
-            to="/"
+            to="/h"
             className={({ isActive }) =>
               `flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all ${
                 isActive
@@ -41,7 +41,7 @@ const Sidebar = () => {
           </NavLink>
 
           <NavLink
-            to="/favorites"
+            to="/h/favorites"
             className={({ isActive }) =>
               `flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all ${
                 isActive
@@ -55,7 +55,7 @@ const Sidebar = () => {
           </NavLink>
 
           <NavLink
-            to="/calendar"
+            to="/h/calendar"
             className={({ isActive }) =>
               `flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all ${
                 isActive
@@ -65,7 +65,7 @@ const Sidebar = () => {
             }
           >
             <FiCalendar className="mr-3 h-5 w-5" />
-            Calendar
+            My Calendar
           </NavLink>
         </nav>
 

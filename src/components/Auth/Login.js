@@ -21,7 +21,7 @@ const Login = () => {
         if (data.status === true) {
           localStorage.setItem('user', JSON.stringify(data.user))
           localStorage.setItem('accessToken', data.accessToken)
-          navigate('/')
+          navigate('/h')
         }
       })
     }
