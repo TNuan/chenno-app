@@ -27,12 +27,15 @@ const BoardListByWorkspace = () => {
   if (isLoading) {
     return (
       <div className="animate-pulse space-y-8">
-        {[...Array(2)].map((_, index) => (
-          <div key={index} className="space-y-4">
+        {[...Array(2)].map((_, workspaceIndex) => (
+          <div key={`workspace-skeleton-${workspaceIndex}`} className="space-y-4">
             <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              {[...Array(3)].map((_, idx) => (
-                <div key={idx} className="h-24 bg-gray-200 dark:bg-gray-700 rounded-lg"></div>
+              {[...Array(3)].map((_, boardIndex) => (
+                <div 
+                  key={`board-skeleton-${workspaceIndex}-${boardIndex}`} 
+                  className="h-24 bg-gray-200 dark:bg-gray-700 rounded-lg"
+                />
               ))}
             </div>
           </div>
@@ -51,7 +54,7 @@ const BoardListByWorkspace = () => {
 
   return (
     <div className="space-y-8">
-      {workspaces.map((workspace) => (
+      {workspaces.map((workspace, index) => (
         <div key={workspace.id} className="space-y-4">
           {/* Workspace Header */}
           <div className="flex items-center justify-between">
@@ -74,7 +77,8 @@ const BoardListByWorkspace = () => {
           </div>
 
           {/* Boards Grid */}
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          {workspace.boards.length > 0 && (
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {workspace.boards.map((board) => (
               <div
                 key={board.id}
@@ -123,6 +127,7 @@ const BoardListByWorkspace = () => {
               </div>
             ))}
           </div>
+      )}   
         </div>
       ))}
     </div>

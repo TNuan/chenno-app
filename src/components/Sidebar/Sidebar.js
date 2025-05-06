@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import CreateWorkspaceModal from '../Workspace/CreateWorkspaceModal';
 import { 
   FiHome, 
   FiStar, 
@@ -13,8 +14,9 @@ import {
   FiChevronRight
 } from 'react-icons/fi';
 
-const Sidebar = () => {
+const Sidebar = (props) => {
   const [expandedWorkspace, setExpandedWorkspace] = useState(null);
+  const { setIsModalOpen } = props;
 
   const workspaces = [
     { id: 1, name: 'Personal', boards: ['Tasks', 'Notes', 'Ideas'] },
@@ -76,6 +78,7 @@ const Sidebar = () => {
               Workspaces
             </h3>
             <button 
+              onClick={() => setIsModalOpen(true)}
               className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors"
               title="Thêm workspace"
             >

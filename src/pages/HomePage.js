@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import WorkspaceList from '../components/Workspace/WorkspaceList';
 import RecentlyBoards from '../components/Board/RecentlyBoards';
@@ -6,13 +6,20 @@ import BoardList from '../components/Board/BoardList';
 import Header from '../components/Header/Header';
 import Sidebar from '../components/Sidebar/Sidebar';
 import BoardListByWorkspace from '../components/Board/BoardListByWorkspace';
+import CreateWorkspaceModal from '../components/Workspace/CreateWorkspaceModal';
 
 const HomePage = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const handleWorkspaceCreated = (workspace) => {
+    // Update your workspaces list or trigger a refresh
+    // You might want to refetch the workspaces list here
+  };
+  
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
       <div className="flex flex-1 mx-auto w-full mt-16">
-        <Sidebar className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 overflow-y-auto" />
+        <Sidebar className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 overflow-y-auto" setIsModalOpen={setIsModalOpen} />
         <main className="flex-1 ml-64 bg-gray-100 dark:bg-gray-800 min-h-[calc(100vh-4rem)]">
           <div className="min-h-screen bg-gray-100 dark:bg-gray-800 p-6">
             <div className="max-w-7xl mx-auto">
@@ -67,6 +74,11 @@ const HomePage = () => {
           </div>
         </main>
       </div>
+      <CreateWorkspaceModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onWorkspaceCreated={handleWorkspaceCreated}
+      />
     </div>
   );
 };

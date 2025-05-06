@@ -80,6 +80,11 @@ export const getWorkspaces = async () => {
   return response.data;
 };
 
+export const createWorkspace = async (data) => {
+  const response = await api.post('/workspaces', data);
+  return response.data;
+};
+
 export const getBoardsByWorkspace = async (workspaceId) => {
   const response = await api.get(`/boards/${workspaceId}`);
   return response.data;
