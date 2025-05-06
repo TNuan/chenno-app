@@ -3,6 +3,7 @@ import { createWorkspace } from '../../services/api';
 import { toast } from 'react-toastify';
 import { FiX, FiUsers } from 'react-icons/fi';
 import workspaceIllustration from '../../assets/images/workspace-illustration.avif';
+import { Navigate } from 'react-router-dom';
 
 const CreateWorkspaceModal = ({ isOpen, onClose, onWorkspaceCreated }) => {
   const [formData, setFormData] = useState({
@@ -24,6 +25,7 @@ const CreateWorkspaceModal = ({ isOpen, onClose, onWorkspaceCreated }) => {
       const response = await createWorkspace(formData);
       toast.success('Workspace created successfully!');
       onWorkspaceCreated(response.workspace);
+      Navigate(`/w/${response.workspace.id}`); // Redirect to the new workspace page
       onClose();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to create workspace');

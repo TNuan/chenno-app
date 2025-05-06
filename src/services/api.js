@@ -95,6 +95,11 @@ export const getBoards = async () => {
   return response.data;
 };
 
+export const createBoard = async (data) => {
+  const response = await api.post('/boards', data);
+  return response.data;
+}
+
 export const getRecentlyBoards = async () => {
   const response = await api.get('/boards/user/recent-boards');
   return response.data;
