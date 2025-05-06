@@ -11,17 +11,15 @@ import {
   FiFolder,
   FiPlus,
   FiChevronDown,
-  FiChevronRight
+  FiChevronRight,
+  FiTrello,
+  FiSettings
 } from 'react-icons/fi';
 
 const Sidebar = (props) => {
   const [expandedWorkspace, setExpandedWorkspace] = useState(null);
-  const { setIsModalOpen } = props;
+  const { setIsModalOpen, workspaces, setIsCreateBoardModalOpen} = props;
 
-  const workspaces = [
-    { id: 1, name: 'Personal', boards: ['Tasks', 'Notes', 'Ideas'] },
-    { id: 2, name: 'Work', boards: ['Projects', 'Meetings', 'Goals'] },
-  ];
 
   return (
     <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
@@ -108,15 +106,32 @@ const Sidebar = (props) => {
 
                 {expandedWorkspace === workspace.id && (
                   <div className="ml-9 mt-1 space-y-1">
-                    {workspace.boards.map((board) => (
-                      <button
-                        key={board}
-                        className="flex items-center w-full px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                      >
-                        <FiGrid className="mr-3 h-4 w-4" />
-                        {board}
+                    <button
+                      onClick={() => console.log('Navigate to boards')}
+                      className="flex items-center w-full px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    >
+                      <FiTrello className="mr-3 h-4 w-4" />
+                      Boards
+                    </button>
+
+                    <button
+                      onClick={() => console.log('Navigate to members')}
+                      className="flex items-center w-full px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    >
+                      <FiUsers className="mr-3 h-4 w-4" />
+                      Members
+                      <button className="ml-auto text-xs text-gray-300 hover:text-gray-100 px-1 py-1 rounded-full">
+                        <FiPlus className="h-4 w-4" />
                       </button>
-                    ))}
+                    </button>
+
+                    <button
+                      onClick={() => console.log('Navigate to boards')}
+                      className="flex items-center w-full px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    >
+                      <FiSettings className="mr-3 h-4 w-4" />
+                      Settings
+                    </button>
                   </div>
                 )}
               </div>
@@ -132,7 +147,9 @@ const Sidebar = (props) => {
             </h3>
           </div>
           <div className="space-y-1">
-            <button className="flex items-center w-full px-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-lg transition-colors">
+            <button className="flex items-center w-full px-3 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/50 rounded-lg transition-colors" 
+              onClick={() => setIsCreateBoardModalOpen(true)}
+            >
               <FiPlus className="mr-3 h-5 w-5" />
               Tạo Board mới
             </button>
@@ -143,6 +160,7 @@ const Sidebar = (props) => {
           </div>
         </div>
       </div>
+
     </aside>
   );
 };

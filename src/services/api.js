@@ -56,24 +56,29 @@ api.interceptors.response.use(
 );
 
 export const login = async (data) => {
-  const response = await api.post('/auth/login', data);
+  const response = await api.post('/users/login', data);
   return response.data;
 };
 
 export const register = async (data) => {
-  const response = await api.post('/auth/register', data);
+  const response = await api.post('/users/register', data);
   return response.data;
 };
 
 export const verifyEmail = async (token) => {
-  const response = await api.post('/auth/verify-email', { token });
+  const response = await api.post('/users/verify-email', { token });
   return response.data;
 };
 
 export const logout = async (data) => {
-  const response = await api.post('/auth/logout', data);
+  const response = await api.post('/users/logout', data);
   return response.data;
 };
+
+export const searchUser = async (key) => {
+  const response = await api.get(`/users/search?key=${key}`);
+  return response.data;
+}
 
 export const getWorkspaces = async () => {
   const response = await api.get('/workspaces');
@@ -84,6 +89,11 @@ export const createWorkspace = async (data) => {
   const response = await api.post('/workspaces', data);
   return response.data;
 };
+
+export const addMemberToWorkspace = async (workspaceId, data) => {
+  const response = await api.post(`/workspaces/${workspaceId}/members`, data);
+  return response.data;
+}
 
 export const getBoardsByWorkspace = async (workspaceId) => {
   const response = await api.get(`/boards/${workspaceId}`);

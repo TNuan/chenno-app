@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getRecentlyBoards } from '../../services/api';
 import { FiClock, FiStar } from 'react-icons/fi';
+import BoardCard from './BoardCard';
 
 const RecentlyBoards = () => {
   const [recentBoards, setRecentBoards] = useState([]);
@@ -58,56 +59,12 @@ const RecentlyBoards = () => {
   return (
     <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
       {recentBoards.map((board) => (
-        <div
+        <BoardCard
           key={board.id}
+          board={board}
+          isRecentlyViewed={true}
           onClick={() => navigate(`/board/${board.id}`)}
-          className="group relative bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow p-4 cursor-pointer"
-        >
-          {/* Board Background */}
-          <div 
-            className="absolute inset-0 rounded-lg opacity-20 group-hover:opacity-30 transition-opacity"
-            style={{ 
-              backgroundColor: board.cover_img || '#4F46E5',
-              backgroundImage: board.cover_img ? `url(${board.cover_img})` : 'none'
-            }}
-          />
-
-          {/* Board Content */}
-          <div className="relative">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                {board.name}
-              </h3>
-              <button 
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Add favorite logic here
-                }}
-              >
-                <FiStar className="h-5 w-5 text-gray-400 hover:text-yellow-400" />
-              </button>
-            </div>
-
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {board.description || 'Personal'}
-            </p>
-
-            {/* Last Visited */}
-            <div className="mt-4 flex items-center text-sm text-gray-500 dark:text-gray-400">
-              <FiClock className="mr-1.5 h-4 w-4" />
-              <span>
-                Last visited {new Date(board.viewed_at).toLocaleString('vi-VN', {
-                  year: 'numeric',
-                  month: 'numeric',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </span>
-            </div>
-          </div>
-        </div>
+        />
       ))}
     </div>
   );

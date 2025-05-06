@@ -1,31 +1,62 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Route, Routes } from 'react-router-dom';
-import WorkspaceList from '../components/Workspace/WorkspaceList';
 import RecentlyBoards from '../components/Board/RecentlyBoards';
 import BoardList from '../components/Board/BoardList';
 import Header from '../components/Header/Header';
 import Sidebar from '../components/Sidebar/Sidebar';
-import BoardListByWorkspace from '../components/Board/BoardListByWorkspace';
+import AllBoardsUser from '../components/Board/AllBoardsUser';
 import CreateWorkspaceModal from '../components/Workspace/CreateWorkspaceModal';
+import CreateBoardModal from '../components/Board/CreateBoardModal';
+import { getWorkspaces } from '../services/api';
 
 const HomePage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isCreateBoardModalOpen, setIsCreateBoardModalOpen] = useState(false);
+  const [workspaces, setWorkspaces] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const handleWorkspaceCreated = (workspace) => {
     // Update your workspaces list or trigger a refresh
     // You might want to refetch the workspaces list here
   };
-  
+  const handleBoardCreated = (board) => {
+    // Update your boards list or trigger a refresh
+    // You might want to refetch the boards list here
+  };
+
+  useEffect(() => {
+    const fetchWorkspaces = async () => {
+      try {
+        const response = await getWorkspaces();
+        setWorkspaces(response.workspaces);
+        setIsLoading(false);
+      } catch (err) {
+        console.error('Error fetching workspaces:', err);
+        setIsLoading(false);
+      }
+    };
+
+    fetchWorkspaces();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
       <div className="flex flex-1 mx-auto w-full mt-16">
-        <Sidebar className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 overflow-y-auto" setIsModalOpen={setIsModalOpen} />
+        <Sidebar className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 overflow-y-auto" setIsModalOpen={setIsModalOpen} workspaces={workspaces} setIsCreateBoardModalOpen={setIsCreateBoardModalOpen}/>
         <main className="flex-1 ml-64 bg-gray-100 dark:bg-gray-800 min-h-[calc(100vh-4rem)]">
           <div className="min-h-screen bg-gray-100 dark:bg-gray-800 p-6">
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-8xl mx-auto">
               <Routes>
-                <Route 
-                  path="/" 
+                <Route
+                  path="/"
                   element={
                     <>
                       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
@@ -44,15 +75,15 @@ const HomePage = () => {
                             <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
                               Your Workspaces
                             </h2>
-                            <BoardListByWorkspace />
+                            <AllBoardsUser />
                           </div>
                         </div>
                       </div>
                     </>
-                  } 
+                  }
                 />
-                <Route 
-                  path="/favorites" 
+                <Route
+                  path="/favorites"
                   element={
                     <>
                       <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
@@ -66,9 +97,9 @@ const HomePage = () => {
                         </div>
                       </div>
                     </>
-                  } 
+                  }
                 />
-                
+
               </Routes>
             </div>
           </div>
@@ -78,6 +109,12 @@ const HomePage = () => {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onWorkspaceCreated={handleWorkspaceCreated}
+      />
+      <CreateBoardModal
+        isOpen={isCreateBoardModalOpen}
+        onClose={() => setIsCreateBoardModalOpen(false)}
+        onBoardCreated={handleBoardCreated}
+        workspaceId={null} // Pass the workspace ID if needed
       />
     </div>
   );
