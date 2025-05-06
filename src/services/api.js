@@ -80,6 +80,11 @@ export const getWorkspaces = async () => {
   return response.data;
 };
 
+export const createWorkspace = async (data) => {
+  const response = await api.post('/workspaces', data);
+  return response.data;
+};
+
 export const getBoardsByWorkspace = async (workspaceId) => {
   const response = await api.get(`/boards/${workspaceId}`);
   return response.data;
@@ -89,6 +94,11 @@ export const getBoards = async () => {
   const response = await api.get('/boards');
   return response.data;
 };
+
+export const createBoard = async (data) => {
+  const response = await api.post('/boards', data);
+  return response.data;
+}
 
 export const getRecentlyBoards = async () => {
   const response = await api.get('/boards/user/recent-boards');
