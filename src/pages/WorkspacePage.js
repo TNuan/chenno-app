@@ -1,13 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Route, Routes, useParams } from 'react-router-dom';
 import { getWorkspaces } from '../services/api';
-import WorkspaceList from '../components/Workspace/WorkspaceList';
-import RecentlyBoards from '../components/Board/RecentlyBoards';
-import BoardList from '../components/Board/BoardList';
 import Header from '../components/Header/Header';
 import SidebarWorkspace from '../components/Sidebar/SidebarWorkspace';
-import BoardListByWorkspace from '../components/Board/BoardListByWorkspace';
 import BoardsByWorkspace from '../components/Board/BoardsByWorkspace';
+import MemberList from '../components/Workspace/MemberList';
 
 const WorkspacePage = () => {
   const [workspaces, setWorkspaces] = useState([]);
@@ -58,7 +55,7 @@ const WorkspacePage = () => {
         />
         <main className="flex-1 ml-64 bg-gray-100 dark:bg-gray-800 min-h-[calc(100vh-4rem)]">
           <div className="min-h-screen bg-gray-100 dark:bg-gray-800 p-6">
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-8xl mx-auto">
               <Routes>
                 <Route 
                   path="" 
@@ -114,9 +111,9 @@ const WorkspacePage = () => {
                           <div className="space-y-6">
                           <div className="space-y-4">
                             <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
-                                Workspace Boards
+                                Members
                             </h2>
-                            <BoardsByWorkspace workspaceId={workspaceId} />
+                            <MemberList />
                             </div>
                           </div>
                         </div>
