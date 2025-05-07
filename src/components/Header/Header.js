@@ -3,14 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { FiBell, FiInfo, FiLogOut, FiUser, FiSettings, FiMoon, FiSun, FiSearch } from 'react-icons/fi';
 import Avatar from 'react-avatar';
 import { ThemeContext } from '../../context/ThemeContext';
-import { logout } from '../../services/api';
+import { logout, getNotifications } from '../../services/api';
+import Notifications from './Notifications';
 
 const Header = () => {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const navigate = useNavigate();
   const { theme, toggleTheme } = useContext(ThemeContext);
   const [currentUser, setCurrentUser] = useState(null);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(true);
 
   const handleLogout = () => {
     logout().then(data => {
@@ -33,6 +38,30 @@ const Header = () => {
       setIsLoaded(true)
     }
   }, [])
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        setIsLoadingNotifications(true);
+        const response = await getNotifications();
+        setNotifications(response.notifications);
+        setUnreadCount(response.notifications.filter(n => !n.isRead).length);
+      } catch (error) {
+        console.error('Failed to fetch notifications:', error);
+      } finally {
+        setIsLoadingNotifications(false);
+      }
+    };
+
+    if (currentUser) {
+      fetchNotifications();
+    }
+  }, [currentUser]);
+
+  const handleNotificationUpdate = (updatedNotifications) => {
+    setNotifications(updatedNotifications);
+    setUnreadCount(updatedNotifications.filter(n => !n.isRead).length);
+  };
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 backdrop-blur-sm bg-opacity-90 dark:bg-opacity-90 z-50">
@@ -82,18 +111,36 @@ const Header = () => {
               {theme === 'light' ? <FiMoon size={20} /> : <FiSun size={20} />}
             </button>
 
-            <button
-              className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
-              title="Thông báo"
-            >
-              <FiBell size={20} />
-              <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-4 w-4">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-xs text-white justify-center items-center">
-                  3
-                </span>
-              </span>
-            </button>
+            <div className="relative">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsNotificationsOpen(!isNotificationsOpen);
+                }}
+                className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
+                title="Thông báo"
+              >
+                <FiBell size={20} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-4 w-4">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-xs text-white justify-center items-center">
+                      {unreadCount}
+                    </span>
+                  </span>
+                )}
+              </button>
+              
+              {isNotificationsOpen && (
+                <Notifications 
+                  isOpen={isNotificationsOpen} 
+                  onClose={() => setIsNotificationsOpen(false)} 
+                  notifications={notifications}
+                  isLoading={isLoadingNotifications}
+                  onUpdate={handleNotificationUpdate}
+                />
+              )}
+            </div>
 
             {/* User Menu */}
             <div className="relative">

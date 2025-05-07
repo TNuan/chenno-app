@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FiX, FiSearch, FiUserPlus } from 'react-icons/fi';
-import { searchUser, addMemberToWorkspace } from '../../services/api';
+import { searchUser, addMemberToWorkspace, bulkInviteToWorkspace } from '../../services/api';
 import { toast } from 'react-toastify';
 
 const InviteMemberModal = ({ isOpen, onClose, workspaceId }) => {
@@ -61,11 +61,12 @@ const InviteMemberModal = ({ isOpen, onClose, workspaceId }) => {
 
     setIsLoading(true);
     try {
-      await Promise.all(
-        selectedUsers.map(user =>
-          addMemberToWorkspace(workspaceId, { userId: user.id })
-        )
-      );
+      await bulkInviteToWorkspace(workspaceId, 
+        {
+          "userIds" : selectedUsers.map(user => user.id),
+          "role" : "member"
+        });
+      setSelectedUsers([]);
       toast.success('Invitations sent successfully');
       onClose();
     } catch (error) {

@@ -80,45 +80,33 @@ const WorkspacePage = () => {
                 <Route 
                   path="/boards" 
                   element={
-                    <>
-                      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-                        Boards
-                      </h1>
-                      <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
-                        <div className="grid gap-6">
-                          <div className="space-y-6">
-                          <div className="space-y-4">
-                            <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
-                                Workspace Boards
-                            </h2>
-                            <BoardsByWorkspace workspaceId={workspaceId} />
-                            </div>
+                    <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
+                      <div className="grid gap-6">
+                        <div className="space-y-6">
+                        <div className="space-y-4">
+                          <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
+                              Workspace Boards
+                          </h2>
+                          <BoardsByWorkspace workspaceId={workspaceId} />
                           </div>
                         </div>
                       </div>
-                    </>
+                    </div>
                   } 
                 />
                 <Route 
                   path="/members" 
                   element={
-                    <>
-                      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-                        Boards
-                      </h1>
-                      <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
-                        <div className="grid gap-6">
-                          <div className="space-y-6">
-                          <div className="space-y-4">
-                            <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
-                                Members
-                            </h2>
-                            <MemberList />
-                            </div>
+                    <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
+                      <div className="grid gap-6">
+                        <div className="space-y-6">
+                        <div className="space-y-4">
+                          
+                          <MemberList workspaceId={workspaceId}/>
                           </div>
                         </div>
                       </div>
-                    </>
+                    </div>
                   } 
                 />
                 <Route 
