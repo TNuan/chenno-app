@@ -120,9 +120,9 @@ const Sidebar = (props) => {
                     >
                       <FiUsers className="mr-3 h-4 w-4" />
                       Members
-                      <button className="ml-auto text-xs text-gray-300 hover:text-gray-100 px-1 py-1 rounded-full">
+                      <div className="ml-auto text-xs text-gray-300 hover:text-gray-100 px-1 py-1 rounded-full">
                         <FiPlus className="h-4 w-4" />
-                      </button>
+                      </div>
                     </button>
 
                     <button

@@ -11,12 +11,21 @@ const WorkspacePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const { workspaceId } = useParams();
+  const [currentWorkspace, setCurrentWorkspace] = useState(null);
+  const [role, setRole] = useState('');
 
   useEffect(() => {
     const fetchWorkspaces = async () => {
       try {
         const response = await getWorkspaces();
         setWorkspaces(response.workspaces);
+        const current = response.workspaces.find(w => w.id === parseInt(workspaceId));
+        if (current) {
+          setCurrentWorkspace(current);
+          setRole(current.role);
+        } else {
+          setError('Workspace not found');
+        }
         setIsLoading(false);
       } catch (err) {
         console.error('Error fetching workspaces:', err);
@@ -50,7 +59,9 @@ const WorkspacePage = () => {
       <div className="flex flex-1 mx-auto w-full mt-16">
         <SidebarWorkspace 
           workspaces={workspaces}
-          currentWorkspaceId={workspaceId} 
+          currentWorkspaceId={workspaceId}
+          setCurrentWorkspace={setCurrentWorkspace}
+          role={role} 
           className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 overflow-y-auto" 
         />
         <main className="flex-1 ml-64 bg-gray-100 dark:bg-gray-800 min-h-[calc(100vh-4rem)]">
@@ -80,45 +91,33 @@ const WorkspacePage = () => {
                 <Route 
                   path="/boards" 
                   element={
-                    <>
-                      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-                        Boards
-                      </h1>
-                      <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
-                        <div className="grid gap-6">
-                          <div className="space-y-6">
-                          <div className="space-y-4">
-                            <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
-                                Workspace Boards
-                            </h2>
-                            <BoardsByWorkspace workspaceId={workspaceId} />
-                            </div>
+                    <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
+                      <div className="grid gap-6">
+                        <div className="space-y-6">
+                        <div className="space-y-4">
+                          <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
+                              Workspace Boards
+                          </h2>
+                          <BoardsByWorkspace workspaceId={workspaceId} />
                           </div>
                         </div>
                       </div>
-                    </>
+                    </div>
                   } 
                 />
                 <Route 
                   path="/members" 
                   element={
-                    <>
-                      <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-                        Boards
-                      </h1>
-                      <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
-                        <div className="grid gap-6">
-                          <div className="space-y-6">
-                          <div className="space-y-4">
-                            <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
-                                Members
-                            </h2>
-                            <MemberList />
-                            </div>
+                    <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
+                      <div className="grid gap-6">
+                        <div className="space-y-6">
+                        <div className="space-y-4">
+                          
+                          <MemberList workspaceId={workspaceId} role={role}/>
                           </div>
                         </div>
                       </div>
-                    </>
+                    </div>
                   } 
                 />
                 <Route 

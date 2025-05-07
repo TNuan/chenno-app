@@ -85,6 +85,11 @@ export const getWorkspaces = async () => {
   return response.data;
 };
 
+export const getMembersByWorkspace = async (workspaceId) => {
+  const response = await api.get(`/workspaces/${workspaceId}/members`);
+  return response.data;
+}
+
 export const createWorkspace = async (data) => {
   const response = await api.post('/workspaces', data);
   return response.data;
@@ -92,6 +97,11 @@ export const createWorkspace = async (data) => {
 
 export const addMemberToWorkspace = async (workspaceId, data) => {
   const response = await api.post(`/workspaces/${workspaceId}/members`, data);
+  return response.data;
+}
+
+export const bulkInviteToWorkspace = async (workspaceId, data) => {
+  const response = await api.post(`/workspaces/${workspaceId}/bulk-invite`, data);
   return response.data;
 }
 
@@ -119,4 +129,21 @@ export const getAllBoards = async () => {
   const response = await api.get('/boards/user/boards');
   return response.data;
 }
+
+// Notification API
+export const getNotifications = async () => {
+  const response = await api.get('/notifications');
+  return response.data;
+}
+
+export const markNotificationAsRead = async (notificationId) => {
+  const response = await api.patch(`/notifications/${notificationId}/read`);
+  return response.data;
+}
+
+export const markAllNotificationsAsRead = async () => {
+  const response = await api.post('/notifications/read-all');
+  return response.data;
+}
+
 export default api;

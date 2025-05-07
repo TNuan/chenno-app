@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { 
-  FiGrid, 
-  FiUsers, 
-  FiPieChart, 
+import {
+  FiGrid,
+  FiUsers,
+  FiPieChart,
   FiSettings,
   FiChevronDown,
   FiFolder,
   FiCalendar
 } from 'react-icons/fi';
 
-const SidebarWorkspace = ({ workspaces = [], currentWorkspaceId }) => {
+const SidebarWorkspace = ({ workspaces = [], currentWorkspaceId, role }) => {
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
   const navigate = useNavigate();
 
@@ -48,11 +48,10 @@ const SidebarWorkspace = ({ workspaces = [], currentWorkspaceId }) => {
                 <button
                   key={workspace.id}
                   onClick={() => handleWorkspaceChange(workspace.id)}
-                  className={`flex items-center w-full px-3 py-2 text-sm ${
-                    workspace.id === currentWorkspaceIdNum
+                  className={`flex items-center w-full px-3 py-2 text-sm ${workspace.id === currentWorkspaceIdNum
                       ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
                       : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
+                    }`}
                 >
                   {workspace.name}
                 </button>
@@ -67,10 +66,9 @@ const SidebarWorkspace = ({ workspaces = [], currentWorkspaceId }) => {
           <NavLink
             to={`/w/${currentWorkspaceId}/boards`}
             className={({ isActive }) =>
-              `flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all ${
-                isActive
-                  ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
-                  : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
+              `flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all ${isActive
+                ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`
             }
           >
@@ -82,10 +80,9 @@ const SidebarWorkspace = ({ workspaces = [], currentWorkspaceId }) => {
           <NavLink
             to={`/w/${currentWorkspaceId}/members`}
             className={({ isActive }) =>
-              `flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all ${
-                isActive
-                  ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
-                  : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
+              `flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all ${isActive
+                ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`
             }
           >
@@ -97,10 +94,9 @@ const SidebarWorkspace = ({ workspaces = [], currentWorkspaceId }) => {
           <NavLink
             to={`/w/${currentWorkspaceId}/calendar`}
             className={({ isActive }) =>
-              `flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all ${
-                isActive
-                  ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
-                  : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
+              `flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all ${isActive
+                ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`
             }
           >
@@ -109,28 +105,28 @@ const SidebarWorkspace = ({ workspaces = [], currentWorkspaceId }) => {
           </NavLink>
 
           {/* Analytics */}
-          <NavLink
-            to={`/w/${currentWorkspaceId}/analytics`}
-            className={({ isActive }) =>
-              `flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all ${
-                isActive
+          {(role === 'admin' || role === 'owner') && (
+            <NavLink
+              to={`/w/${currentWorkspaceId}/analytics`}
+              className={({ isActive }) =>
+                `flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all ${isActive
                   ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
                   : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
-              }`
-            }
-          >
-            <FiPieChart className="mr-3 h-5 w-5" />
-            Analytics
-          </NavLink>
+                }`
+              }
+            >
+              <FiPieChart className="mr-3 h-5 w-5" />
+              Analytics
+            </NavLink>
+          )}
 
           {/* Settings */}
           <NavLink
             to={`/workspace/${currentWorkspaceId}/settings`}
             className={({ isActive }) =>
-              `flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all ${
-                isActive
-                  ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
-                  : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
+              `flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-all ${isActive
+                ? 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400'
+                : 'text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800'
               }`
             }
           >
