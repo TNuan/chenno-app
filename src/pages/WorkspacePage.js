@@ -11,12 +11,21 @@ const WorkspacePage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const { workspaceId } = useParams();
+  const [currentWorkspace, setCurrentWorkspace] = useState(null);
+  const [role, setRole] = useState('');
 
   useEffect(() => {
     const fetchWorkspaces = async () => {
       try {
         const response = await getWorkspaces();
         setWorkspaces(response.workspaces);
+        const current = response.workspaces.find(w => w.id === parseInt(workspaceId));
+        if (current) {
+          setCurrentWorkspace(current);
+          setRole(current.role);
+        } else {
+          setError('Workspace not found');
+        }
         setIsLoading(false);
       } catch (err) {
         console.error('Error fetching workspaces:', err);
@@ -50,7 +59,9 @@ const WorkspacePage = () => {
       <div className="flex flex-1 mx-auto w-full mt-16">
         <SidebarWorkspace 
           workspaces={workspaces}
-          currentWorkspaceId={workspaceId} 
+          currentWorkspaceId={workspaceId}
+          setCurrentWorkspace={setCurrentWorkspace}
+          role={role} 
           className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 overflow-y-auto" 
         />
         <main className="flex-1 ml-64 bg-gray-100 dark:bg-gray-800 min-h-[calc(100vh-4rem)]">
@@ -102,7 +113,7 @@ const WorkspacePage = () => {
                         <div className="space-y-6">
                         <div className="space-y-4">
                           
-                          <MemberList workspaceId={workspaceId}/>
+                          <MemberList workspaceId={workspaceId} role={role}/>
                           </div>
                         </div>
                       </div>

@@ -40,7 +40,7 @@ const Notifications = ({
       await markNotificationAsRead(notificationId);
       const updatedNotifications = notifications.map(notification =>
         notification.id === notificationId
-          ? { ...notification, isRead: true }
+          ? { ...notification, is_read: true }
           : notification
       );
       onUpdate(updatedNotifications);
@@ -55,7 +55,7 @@ const Notifications = ({
       await markAllNotificationsAsRead();
       const updatedNotifications = notifications.map(notification => ({
         ...notification,
-        isRead: true
+        is_read: true
       }));
       onUpdate(updatedNotifications);
       toast.success('All notifications marked as read');
@@ -66,10 +66,10 @@ const Notifications = ({
   };
 
   const displayedNotifications = showOnlyUnread
-    ? notifications.filter(notification => !notification.isRead)
+    ? notifications.filter(notification => !notification.is_read)
     : notifications;
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   if (!isOpen) return null;
 
@@ -139,7 +139,7 @@ const Notifications = ({
             <div
               key={notification.id}
               className={`flex items-start p-4 hover:bg-gray-50 dark:hover:bg-gray-700 ${
-                !notification.isRead ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                !notification.is_read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
               }`}
             >
               {/* Avatar */}
@@ -166,7 +166,7 @@ const Notifications = ({
                     <span className="font-medium">{notification.sender.username}</span>{': '}
                     {notification.content}
                   </p>
-                  {!notification.isRead && (
+                  {!notification.is_read && (
                     <button
                       onClick={() => handleMarkAsRead(notification.id)}
                       className="ml-2 text-blue-500 hover:text-blue-600 dark:hover:text-blue-400"

@@ -45,7 +45,7 @@ const Header = () => {
         setIsLoadingNotifications(true);
         const response = await getNotifications();
         setNotifications(response.notifications);
-        setUnreadCount(response.notifications.filter(n => !n.isRead).length);
+        setUnreadCount(response.notifications.filter(n => !n.is_read).length);
       } catch (error) {
         console.error('Failed to fetch notifications:', error);
       } finally {
@@ -60,7 +60,7 @@ const Header = () => {
 
   const handleNotificationUpdate = (updatedNotifications) => {
     setNotifications(updatedNotifications);
-    setUnreadCount(updatedNotifications.filter(n => !n.isRead).length);
+    setUnreadCount(updatedNotifications.filter(n => !n.is_read).length);
   };
 
   return (
