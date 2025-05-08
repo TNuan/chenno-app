@@ -60,7 +60,7 @@ const WorkspacePage = () => {
         <SidebarWorkspace 
           workspaces={workspaces}
           currentWorkspaceId={workspaceId}
-          setCurrentWorkspace={setCurrentWorkspace}
+          setRole={setRole}
           role={role} 
           className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 overflow-y-auto" 
         />

@@ -1,10 +1,42 @@
-import React from "react";
+import React, { useState } from "react";
 import { FiStar, FiClock } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+import { toggleFavoriteBoard } from "../../services/api";
+import { toast } from "react-toastify";
 
-const BoardCard = (props) => {
-    const { board, isRecentlyViewed } = props;
+const BoardCard = ({ board, isRecentlyViewed, onUpdate }) => {
     const navigate = useNavigate();
+    const [isToggling, setIsToggling] = useState(false);
+
+    const handleToggleFavorite = async (e) => {
+        e.stopPropagation();
+        if (isToggling) return;
+
+        try {
+            setIsToggling(true);
+            await toggleFavoriteBoard(board.id);
+            
+            // Update the board's favorite status locally through parent component
+            if (onUpdate) {
+                onUpdate({
+                    ...board,
+                    is_favorite: !board.is_favorite
+                });
+            }
+
+            toast.success(
+                board.is_favorite 
+                    ? 'Đã xóa khỏi danh sách yêu thích' 
+                    : 'Đã thêm vào danh sách yêu thích'
+            );
+        } catch (error) {
+            console.error('Toggle favorite failed:', error);
+            toast.error('Không thể cập nhật trạng thái yêu thích');
+        } finally {
+            setIsToggling(false);
+        }
+    };
+
     return (
         <div
             onClick={() => navigate(`/b/${board.id}`)}
@@ -21,19 +53,23 @@ const BoardCard = (props) => {
                 }}
             />
 
-            {/* Favorite Button */}
+            {/* Updated Favorite Button */}
             <div className="relative z-15 flex justify-end p-2">
                 <button
-                    className="p-1.5 hover:bg-white/20 rounded bg-white/40 dark:bg-gray-800/30"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        // Add favorite logic here
-                    }}
+                    className={`p-1.5 hover:bg-white/20 rounded bg-white/40 dark:bg-gray-800/30 ${
+                        isToggling ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                    onClick={handleToggleFavorite}
+                    disabled={isToggling}
+                    title={board.is_favorite ? 'Xóa khỏi mục yêu thích' : 'Thêm vào mục yêu thích'}
                 >
-                    <FiStar className={`h-5 w-5 ${board.is_favorite
-                            ? 'text-yellow-500 fill-current'
-                            : 'text-gray-200 hover:text-yellow-500'
-                        }`} />
+                    <FiStar 
+                        className={`h-5 w-5 ${
+                            board.is_favorite
+                                ? 'text-yellow-500 fill-current'
+                                : 'text-gray-200 hover:text-yellow-500'
+                        }`} 
+                    />
                 </button>
             </div>
 

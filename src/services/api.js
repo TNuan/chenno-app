@@ -125,6 +125,16 @@ export const getRecentlyBoards = async () => {
   return response.data;
 };
 
+export const getFavoriteBoards = async () => {
+  const response = await api.get('/boards/user/favorite-boards');
+  return response.data;
+}
+
+export const toggleFavoriteBoard = async (boardId) => {
+  const response = await api.patch(`/boards/user/favorite-boards/${boardId}`);
+  return response.data;
+}
+
 export const getAllBoards = async () => {
   const response = await api.get('/boards/user/boards');
   return response.data;

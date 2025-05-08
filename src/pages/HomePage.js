@@ -7,12 +7,14 @@ import Sidebar from '../components/Sidebar/Sidebar';
 import AllBoardsUser from '../components/Board/AllBoardsUser';
 import CreateWorkspaceModal from '../components/Workspace/CreateWorkspaceModal';
 import CreateBoardModal from '../components/Board/CreateBoardModal';
-import { getWorkspaces } from '../services/api';
+import { getWorkspaces, getAllBoards } from '../services/api';
+import FavoriteBoards from '../components/Board/FavoriteBoards';
 
 const HomePage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isCreateBoardModalOpen, setIsCreateBoardModalOpen] = useState(false);
   const [workspaces, setWorkspaces] = useState([]);
+  const [allBoardsUser, setAllBoardsUser] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const handleWorkspaceCreated = (workspace) => {
     // Update your workspaces list or trigger a refresh
@@ -23,11 +25,22 @@ const HomePage = () => {
     // You might want to refetch the boards list here
   };
 
+  const handleBoardUpdate = (updatedBoard) => {
+    setAllBoardsUser(prevWorkspaces =>
+      prevWorkspaces.map(workspace => ({
+        ...workspace,
+        boards: workspace.boards.map(board =>
+          board.id === updatedBoard.id ? updatedBoard : board
+        )
+      }))
+    );
+  };
+
   useEffect(() => {
-    const fetchWorkspaces = async () => {
+    const fetchAllBoardsUser = async () => {
       try {
-        const response = await getWorkspaces();
-        setWorkspaces(response.workspaces);
+        const response = await getAllBoards();
+        setAllBoardsUser(response.listBoards);
         setIsLoading(false);
       } catch (err) {
         console.error('Error fetching workspaces:', err);
@@ -35,7 +48,7 @@ const HomePage = () => {
       }
     };
 
-    fetchWorkspaces();
+    fetchAllBoardsUser();
   }, []);
 
   if (isLoading) {
@@ -65,17 +78,24 @@ const HomePage = () => {
                       <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
                         <div className="grid gap-6">
                           <div className="space-y-6">
+                              <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
+                                Favorites Boards
+                              </h2>
+                            <FavoriteBoards allBoardsUser={allBoardsUser} handleBoardUpdate={handleBoardUpdate}/>
+                          </div>
+
+                          <div className="space-y-6">
                             <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
                               Recently Viewed
                             </h2>
-                            <RecentlyBoards />
+                            <RecentlyBoards allBoardsUser={allBoardsUser} handleBoardUpdate={handleBoardUpdate}/>
                           </div>
 
                           <div className="space-y-4">
                             <h2 className="text-lg font-medium text-gray-800 dark:text-gray-200">
                               Your Workspaces
                             </h2>
-                            <AllBoardsUser />
+                            <AllBoardsUser allBoardsUser={allBoardsUser} handleBoardUpdate={handleBoardUpdate}/>
                           </div>
                         </div>
                       </div>
@@ -92,7 +112,7 @@ const HomePage = () => {
                       <div className="bg-white dark:bg-gray-900 rounded-lg shadow p-6">
                         <div className="grid gap-6">
                           <div className="space-y-4">
-                            <BoardList />
+                            <FavoriteBoards />
                           </div>
                         </div>
                       </div>
