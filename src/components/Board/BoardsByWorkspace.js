@@ -16,6 +16,12 @@ const BoardsByWorkspace = ({ workspaceId }) => {
     setIsModalCreateBoardOpen(false);
   };
 
+  const handleBoardUpdate = (updatedBoard) => {
+    setBoards((prevBoards) =>
+      prevBoards.map((board) => (board.id === updatedBoard.id ? updatedBoard : board))
+    );
+  };
+
   useEffect(() => {
     const fetchBoards = async () => {
       try {
@@ -80,7 +86,7 @@ const BoardsByWorkspace = ({ workspaceId }) => {
   return (
     <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
       {boards.map((board) => (
-        <BoardCard key={board.id} board={board} />
+        <BoardCard key={board.id} board={board} onUpdate={handleBoardUpdate}/>
       ))}
       <CreateBoardModal
         isOpen={isModalCreateBoardOpen}
