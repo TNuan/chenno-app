@@ -4,16 +4,30 @@ import { getFavoriteBoards } from '../../services/api';
 import { FiStar } from 'react-icons/fi';
 import BoardCard from './BoardCard';
 
-const FavoriteBoards = ({allBoardsUser, handleBoardUpdate}) => {
+const FavoriteBoards = ({ allBoardsUser, handleBoardUpdate }) => {
   const [favoriteBoards, setFavoriteBoards] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const listFavoriteBoards = allBoardsUser.flatMap(workspace => workspace.boards).filter(board => board.is_favorite);
-    setFavoriteBoards(listFavoriteBoards);
-    setIsLoading(false);
+    if (!allBoardsUser) {
+      const fetchRecentBoards = async () => {
+        try {
+          const response = await getFavoriteBoards();
+          setFavoriteBoards(response.boards);
+          setIsLoading(false);
+        } catch (err) {
+          setError('Failed to load recent boards');
+          setIsLoading(false);
+        }
+      };
+      fetchRecentBoards();
+    } else {
+      const listFavoriteBoards = allBoardsUser.flatMap(workspace => workspace.boards).filter(board => board.is_favorite);
+      setFavoriteBoards(listFavoriteBoards);
+      setIsLoading(false);
+    }
   }, [allBoardsUser]);
 
   if (isLoading) {

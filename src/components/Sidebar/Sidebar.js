@@ -18,7 +18,7 @@ import {
 
 const Sidebar = (props) => {
   const [expandedWorkspace, setExpandedWorkspace] = useState(null);
-  const { setIsModalOpen, workspaces, setIsCreateBoardModalOpen} = props;
+  const { setIsModalOpen, handleWorkspaceCreated, allBoardsUser, setIsCreateBoardModalOpen} = props;
 
 
   return (
@@ -86,7 +86,7 @@ const Sidebar = (props) => {
           </div>
 
           <div className="space-y-1">
-            {workspaces.map((workspace) => (
+            {allBoardsUser.map((workspace) => (
               <div key={workspace.id}>
                 <button
                   onClick={() => setExpandedWorkspace(
@@ -121,18 +121,22 @@ const Sidebar = (props) => {
                     >
                       <FiUsers className="mr-3 h-4 w-4" />
                       Members
-                      <div className="ml-auto text-xs text-gray-300 hover:text-gray-100 px-1 py-1 rounded-full">
-                        <FiPlus className="h-4 w-4" />
-                      </div>
+                      {(workspace.role === 'owner' || workspace.role === 'admin') && (
+                        <div className="ml-auto text-xs text-gray-300 hover:text-gray-100 px-1 py-1 rounded-full">
+                          <FiPlus className="h-4 w-4" />
+                        </div>
+                      )}
                     </button>
 
-                    <button
-                      onClick={() => console.log('Navigate to boards')}
-                      className="flex items-center w-full px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                    >
-                      <FiSettings className="mr-3 h-4 w-4" />
-                      Settings
-                    </button>
+                    {workspace.role === 'owner' && (
+                      <button
+                        onClick={() => console.log('Navigate to boards')}
+                        className="flex items-center w-full px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                      >
+                        <FiSettings className="mr-3 h-4 w-4" />
+                        Settings
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

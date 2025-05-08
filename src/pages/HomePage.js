@@ -16,10 +16,11 @@ const HomePage = () => {
   const [workspaces, setWorkspaces] = useState([]);
   const [allBoardsUser, setAllBoardsUser] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const handleWorkspaceCreated = (workspace) => {
-    // Update your workspaces list or trigger a refresh
-    // You might want to refetch the workspaces list here
+  const handleWorkspaceCreated = (newWorkspace) => {
+    const newAllBoardsUser = [...allBoardsUser, {...newWorkspace, boards: [], role: 'owner'}];
+    setAllBoardsUser(newAllBoardsUser)
   };
+
   const handleBoardCreated = (board) => {
     // Update your boards list or trigger a refresh
     // You might want to refetch the boards list here
@@ -63,7 +64,11 @@ const HomePage = () => {
     <div className="flex flex-col min-h-screen">
       <Header />
       <div className="flex flex-1 mx-auto w-full mt-16">
-        <Sidebar className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 overflow-y-auto" setIsModalOpen={setIsModalOpen} workspaces={workspaces} setIsCreateBoardModalOpen={setIsCreateBoardModalOpen}/>
+        <Sidebar className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 overflow-y-auto" 
+          setIsModalOpen={setIsModalOpen} 
+          allBoardsUser={allBoardsUser} 
+          setIsCreateBoardModalOpen={setIsCreateBoardModalOpen}
+        />
         <main className="flex-1 ml-64 bg-gray-100 dark:bg-gray-800 min-h-[calc(100vh-4rem)]">
           <div className="min-h-screen bg-gray-100 dark:bg-gray-800 p-6">
             <div className="max-w-8xl mx-auto">
