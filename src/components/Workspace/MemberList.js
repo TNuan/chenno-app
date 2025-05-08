@@ -1,8 +1,104 @@
-import React, { useState, useEffect } from 'react';
-import { FiSearch, FiMoreHorizontal, FiLink, FiUserPlus } from 'react-icons/fi';
+import React, { useState, useEffect, useRef } from 'react';
+import { FiSearch, FiMoreHorizontal, FiLink, FiUserPlus, FiTrash2, FiUserCheck } from 'react-icons/fi';
 import InviteMemberModal from './InviteMemberModal';
-import { getMembersByWorkspace } from '../../services/api';
+import { getMembersByWorkspace, updateRoleMember, removeMemberFromWorkspace } from '../../services/api';
 import { toast } from 'react-toastify';
+
+const MemberActions = ({ member, workspaceId, onUpdate, currentUserRole }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleUpdateRole = async (newRole) => {
+    try {
+      await updateRoleMember(workspaceId, member.user_id, { role: newRole });
+      onUpdate({ ...member, role: newRole });
+      toast.success(`Updated ${member.username}'s role to ${newRole}`);
+    } catch (error) {
+      console.error('Failed to update member role:', error);
+      toast.error('Failed to update member role');
+    }
+    setIsOpen(false);
+  };
+
+  const handleRemoveMember = async () => {
+    if (window.confirm(`Are you sure you want to remove ${member.username} from this workspace?`)) {
+      try {
+        await removeMemberFromWorkspace(workspaceId, member.user_id);
+        onUpdate(null, true);
+        toast.success(`Removed ${member.username} from workspace`);
+      } catch (error) {
+        console.error('Failed to remove member:', error);
+        toast.error('Failed to remove member');
+      }
+    }
+    setIsOpen(false);
+  };
+
+  // Don't show actions for workspace owner or if current user isn't admin/owner
+  if (member.role === 'owner' || (currentUserRole !== 'owner' && currentUserRole !== 'admin')) {
+    return null;
+  }
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full"
+      >
+        <FiMoreHorizontal className="h-5 w-5 text-gray-400" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-1 w-56 bg-white dark:bg-gray-800 rounded-md shadow-lg z-50 py-1 border border-gray-200 dark:border-gray-700">
+          {currentUserRole === 'owner' && (
+            <>
+              <button
+                onClick={() => handleUpdateRole('admin')}
+                className={`w-full text-left px-4 py-2 text-sm ${
+                  member.role === 'admin' 
+                    ? 'text-blue-500 dark:text-blue-400' 
+                    : 'text-gray-700 dark:text-gray-300'
+                } hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center`}
+              >
+                <FiUserCheck className="mr-2 h-4 w-4" />
+                Make Admin
+              </button>
+              <button
+                onClick={() => handleUpdateRole('member')}
+                className={`w-full text-left px-4 py-2 text-sm ${
+                  member.role === 'member' 
+                    ? 'text-blue-500 dark:text-blue-400' 
+                    : 'text-gray-700 dark:text-gray-300'
+                } hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center`}
+              >
+                <FiUserCheck className="mr-2 h-4 w-4" />
+                Make Member
+              </button>
+            </>
+          )}
+          <button
+            onClick={handleRemoveMember}
+            className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center"
+          >
+            <FiTrash2 className="mr-2 h-4 w-4" />
+            Remove from workspace
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const MemberList = ({ workspaceId, role }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -66,6 +162,16 @@ const MemberList = ({ workspaceId, role }) => {
     member.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
     member.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleMemberUpdate = (updatedMember, isRemoved = false) => {
+    if (isRemoved) {
+      setMembers((prevMembers) => prevMembers.filter((m) => m.user_id !== updatedMember.user_id));
+    } else {
+      setMembers((prevMembers) =>
+        prevMembers.map((m) => (m.user_id === updatedMember.user_id ? updatedMember : m))
+      );
+    }
+  };
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm">
@@ -147,9 +253,12 @@ const MemberList = ({ workspaceId, role }) => {
                     <span className="text-sm text-gray-500 dark:text-gray-400">
                       {member.role}
                     </span>
-                    <button className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
-                      <FiMoreHorizontal className="h-5 w-5 text-gray-400" />
-                    </button>
+                    <MemberActions
+                      member={member}
+                      workspaceId={workspaceId}
+                      onUpdate={handleMemberUpdate}
+                      currentUserRole={role}
+                    />
                   </div>
                 </div>
               ))}

@@ -105,6 +105,17 @@ export const bulkInviteToWorkspace = async (workspaceId, data) => {
   return response.data;
 }
 
+export const updateRoleMember = async (workspaceId, memberId, data) => {
+  const response = await api.put(`/workspaces/${workspaceId}/members/${memberId}`, data);
+  return response.data;
+}
+
+export const removeMemberFromWorkspace = async (workspaceId, memberId) => {
+  const response = await api.delete(`/workspaces/${workspaceId}/members/${memberId}`);
+  return response.data;
+}
+
+// Api for Boards
 export const getBoardsByWorkspace = async (workspaceId) => {
   const response = await api.get(`/boards/${workspaceId}`);
   return response.data;
