@@ -5,8 +5,7 @@ import { FiStar, FiFolder, FiPlus, FiTrello, FiUsers, FiSettings } from 'react-i
 import CreateBoardModal from './CreateBoardModal';
 import BoardCard from './BoardCard';
 
-const AllBoardsUser = () => {
-  const [workspaces, setWorkspaces] = useState([]);
+const AllBoardsUser = ({ allBoardsUser, handleBoardUpdate }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
@@ -16,53 +15,41 @@ const AllBoardsUser = () => {
     // Update your boards list or trigger a refresh
     // You might want to refetch the boards list here
   };
+  // if (allBoardsUser) {
+  //   setIsLoading(false);
+  // }
 
-  useEffect(() => {
-    const fetchBoards = async () => {
-      try {
-        const response = await getAllBoards();
-        setWorkspaces(response.listBoards);
-        setIsLoading(false);
-      } catch (err) {
-        setError('Failed to load boards');
-        setIsLoading(false);
-      }
-    };
+  // if (isLoading) {
+  //   return (
+  //     <div className="animate-pulse space-y-8">
+  //       {[...Array(2)].map((_, workspaceIndex) => (
+  //         <div key={`workspace-skeleton-${workspaceIndex}`} className="space-y-4">
+  //           <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
+  //           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+  //             {[...Array(3)].map((_, boardIndex) => (
+  //               <div
+  //                 key={`board-skeleton-${workspaceIndex}-${boardIndex}`}
+  //                 className="h-24 bg-gray-200 dark:bg-gray-700 rounded-lg"
+  //               />
+  //             ))}
+  //           </div>
+  //         </div>
+  //       ))}
+  //     </div>
+  //   );
+  // }
 
-    fetchBoards();
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="animate-pulse space-y-8">
-        {[...Array(2)].map((_, workspaceIndex) => (
-          <div key={`workspace-skeleton-${workspaceIndex}`} className="space-y-4">
-            <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded w-48"></div>
-            <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              {[...Array(3)].map((_, boardIndex) => (
-                <div 
-                  key={`board-skeleton-${workspaceIndex}-${boardIndex}`} 
-                  className="h-24 bg-gray-200 dark:bg-gray-700 rounded-lg"
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-        {error}
-      </div>
-    );
-  }
+  // if (error) {
+  //   return (
+  //     <div className="text-center py-4 text-gray-500 dark:text-gray-400">
+  //       {error}
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="space-y-8">
-      {workspaces.map((workspace, index) => (
+      {allBoardsUser.map((workspace) => (
         <div key={workspace.id} className="space-y-4">
           {/* Workspace Header */}
           <div className="flex items-center justify-between">
@@ -76,7 +63,7 @@ const AllBoardsUser = () => {
               </span>
             </div>
             <div className="flex items-center space-x-2">
-              <button 
+              <button
                 onClick={() => {
                   navigate(`/w/${workspace.id}/boards`);
                 }}
@@ -85,7 +72,7 @@ const AllBoardsUser = () => {
                 <FiTrello className="h-4 w-4" />
                 <span>Boards</span>
               </button>
-              <button 
+              <button
                 onClick={() => {
                   navigate(`/w/${workspace.id}/members`);
                 }}
@@ -94,25 +81,33 @@ const AllBoardsUser = () => {
                 <FiUsers className="h-4 w-4" />
                 <span>Members</span>
               </button>
-              <button 
-                onClick={() => {
-                  navigate(`/w/${workspace.id}/settings`)
-                }}
-                className="flex items-center space-x-1 px-3 py-1.5 text-sm text-blue-600 dark:text-blue-400 bg-gray-200 dark:bg-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-              >
-                <FiSettings className="h-4 w-4" />
-                <span>Settings</span>
-              </button>
-              <button 
-                onClick={() => {
-                  setSelectedWorkspace(workspace.id);
-                  setIsModalOpen(true)
-                }}
-                className="flex items-center space-x-1 px-3 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-              >
-                <FiPlus className="h-4 w-4" />
-                <span>Add Board</span>
-              </button>
+
+              {
+                workspace.role === 'owner' && (
+                  <button
+                    onClick={() => {
+                      navigate(`/w/${workspace.id}/settings`)
+                    }}
+                    className="flex items-center space-x-1 px-3 py-1.5 text-sm text-blue-600 dark:text-blue-400 bg-gray-200 dark:bg-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                  >
+                    <FiSettings className="h-4 w-4" />
+                    <span>Settings</span>
+                  </button>
+                )
+              }
+
+              { (workspace.role === 'owner' || workspace.role === 'admin') && (
+                  <button
+                    onClick={() => {
+                      setSelectedWorkspace(workspace.id);
+                      setIsModalOpen(true)
+                    }}
+                    className="flex items-center space-x-1 px-3 py-1.5 text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                  >
+                    <FiPlus className="h-4 w-4" />
+                    <span>Add Board</span>
+                  </button>
+              )}
             </div>
           </div>
 
@@ -120,10 +115,15 @@ const AllBoardsUser = () => {
           {workspace.boards.length > 0 && (
             <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {workspace.boards.map((board) => (
-                <BoardCard key={board.id} board={board} />
+                <BoardCard 
+                  key={board.id} 
+                  board={board}
+                  isRecentlyViewed={false}
+                  onUpdate={handleBoardUpdate}
+                />
               ))}
             </div>
-          )}   
+          )}
         </div>
       ))}
 

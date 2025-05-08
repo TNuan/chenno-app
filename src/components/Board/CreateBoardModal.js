@@ -80,7 +80,9 @@ const CreateBoardModal = ({ isOpen, onClose, onBoardCreated, workspaceId }) => {
       <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
         <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose} />
 
-        <div className="inline-block w-full max-w-2xl px-4 pt-5 pb-4 overflow-hidden text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl dark:bg-gray-900 sm:my-8 sm:align-middle sm:p-6">
+        <div className="inline-block w-full max-w-2xl px-4 pt-5 pb-4 overflow-y-auto text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl dark:bg-gray-900 sm:my-8 sm:align-middle sm:p-6"
+             style={{ maxHeight: 'calc(100vh - 100px)' }} // Dynamic max height
+        >
           <button
             onClick={onClose}
             className="absolute top-4 right-4 text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"

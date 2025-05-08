@@ -3,12 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { getBoardsByWorkspace } from '../../services/api';
 import { FiGrid, FiStar } from 'react-icons/fi';
 import BoardCard from './BoardCard';
+import CreateBoardModal from './CreateBoardModal';
 
 const BoardsByWorkspace = ({ workspaceId }) => {
   const [boards, setBoards] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const [isModalCreateBoardOpen, setIsModalCreateBoardOpen] = useState(false);
+  const handleBoardCreated = (board) => {
+    setBoards((prevBoards) => [...prevBoards, board]);
+    setIsModalCreateBoardOpen(false);
+  };
 
   useEffect(() => {
     const fetchBoards = async () => {
@@ -56,11 +62,17 @@ const BoardsByWorkspace = ({ workspaceId }) => {
           Get started by creating a new board
         </p>
         <button
-          onClick={() => navigate(`/w/${workspaceId}/create-board`)}
+          onClick={() => setIsModalCreateBoardOpen(true)}
           className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
         >
           Create Board
         </button>
+        <CreateBoardModal
+          isOpen={isModalCreateBoardOpen}
+          onClose={() => setIsModalCreateBoardOpen(false)}
+          onBoardCreated={handleBoardCreated}
+          workspaceId={workspaceId}
+        />
       </div>
     );
   }
@@ -70,6 +82,12 @@ const BoardsByWorkspace = ({ workspaceId }) => {
       {boards.map((board) => (
         <BoardCard key={board.id} board={board} />
       ))}
+      <CreateBoardModal
+        isOpen={isModalCreateBoardOpen}
+        onClose={() => setIsModalCreateBoardOpen(false)}
+        onBoardCreated={handleBoardCreated}
+        workspaceId={workspaceId}
+      />
     </div>
   );
 };

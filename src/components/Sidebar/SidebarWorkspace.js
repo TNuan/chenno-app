@@ -10,12 +10,13 @@ import {
   FiCalendar
 } from 'react-icons/fi';
 
-const SidebarWorkspace = ({ workspaces = [], currentWorkspaceId, role }) => {
+const SidebarWorkspace = ({ workspaces = [], currentWorkspaceId, setRole, role }) => {
   const [isWorkspaceOpen, setIsWorkspaceOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleWorkspaceChange = (workspaceId) => {
     setIsWorkspaceOpen(false);
+    setRole(workspaces.find(w => w.id === workspaceId).role);
     navigate(`/w/${workspaceId}`);
   };
 

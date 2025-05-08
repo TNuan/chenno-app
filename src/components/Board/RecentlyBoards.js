@@ -4,27 +4,36 @@ import { getRecentlyBoards } from '../../services/api';
 import { FiClock, FiStar } from 'react-icons/fi';
 import BoardCard from './BoardCard';
 
-const RecentlyBoards = () => {
+const RecentlyBoards = ({ allBoardsUser, handleBoardUpdate }) => {
   const [recentBoards, setRecentBoards] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchRecentBoards = async () => {
-      try {
-        console.log('Fetching recent boards...');
-        const response = await getRecentlyBoards();
-        setRecentBoards(response.boards);
-        setIsLoading(false);
-      } catch (err) {
-        setError('Failed to load recent boards');
-        setIsLoading(false);
-      }
-    };
+    const listRecentlyBoards = allBoardsUser
+      .flatMap(workspace => workspace.boards)
+      .filter(board => board.viewed_at !== null)
+      .sort((a, b) => new Date(b.viewed_at) - new Date(a.viewed_at))
+      .slice(0, 5);
+    setRecentBoards(listRecentlyBoards);
+    setIsLoading(false);
+  }, [allBoardsUser]);
 
-    fetchRecentBoards();
-  }, []);
+  // useEffect(() => {
+  //   const fetchRecentBoards = async () => {
+  //     try {
+  //       const response = await getRecentlyBoards();
+  //       setRecentBoards(response.boards);
+  //       setIsLoading(false);
+  //     } catch (err) {
+  //       setError('Failed to load recent boards');
+  //       setIsLoading(false);
+  //     }
+  //   };
+
+  //   fetchRecentBoards();
+  // }, []);
 
   if (isLoading) {
     return (
@@ -63,6 +72,7 @@ const RecentlyBoards = () => {
           key={board.id}
           board={board}
           isRecentlyViewed={true}
+          onUpdate={handleBoardUpdate}
           onClick={() => navigate(`/board/${board.id}`)}
         />
       ))}
