@@ -116,6 +116,16 @@ export const removeMemberFromWorkspace = async (workspaceId, memberId) => {
 }
 
 // Api for Boards
+export const getBoardById = async (boardId) => {
+  const response = await api.get(`/boards/single/${boardId}`);
+  return response.data;
+}
+
+export const updateBoard = async (boardId, data) => {
+  const response = await api.put(`/boards/${boardId}`, data);
+  return response.data;
+}
+
 export const getBoardsByWorkspace = async (workspaceId) => {
   const response = await api.get(`/boards/${workspaceId}`);
   return response.data;
@@ -150,6 +160,36 @@ export const getAllBoards = async () => {
   const response = await api.get('/boards/user/boards');
   return response.data;
 }
+
+// Api for Columns
+export const getColumnsByBoard = async (boardId) => {
+  const response = await api.get(`/columns/${boardId}`);
+  return response.data;
+}
+
+export const createColumn = async (data) => {
+  const response = await api.post(`/columns`, data);
+  return response.data;
+}
+
+export const updateColumn = async (columnId, data) => {
+  const response = await api.put(`/columns/${columnId}`, data);
+  return response.data;
+}
+
+export const deleteColumn = async (columnId) => {
+  const response = await api.delete(`/columns/${columnId}`);
+  return response.data;
+}
+
+export const getCardsByColumn = async (columnId) => {
+  const response = await api.get(`/cards/${columnId}`);
+  return response.data;
+}
+
+
+
+
 
 // Notification API
 export const getNotifications = async () => {

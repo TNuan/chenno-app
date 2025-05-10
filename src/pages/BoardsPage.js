@@ -1,55 +1,93 @@
-import React, { useState, useEffect } from 'react';
-import { getBoards } from '../services/api';
+import React from 'react'
 
-const BoardsPage = () => {
-  const [boards, setBoards] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+// import BoardBar from 'components/BoardBar/BoardBar'
+// import BoardContent from 'components/BoardContent/BoardContent'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useRef, useEffect, useState } from 'react'
+import Header from '../components/Header/Header'
+import BoardBar from '../components/Board/BoardBar'
+import { getBoardById } from '../services/api'
+import BoardContent from '../components/Board/BoardContent'
+
+const Board = () => {
+  const { boardId } = useParams();
+  const [board, setBoard] = useState(null);
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate()
+
 
   useEffect(() => {
-    const fetchBoards = async () => {
+    const fetchBoard = async () => {
       try {
-        const data = await getBoards();
-        setBoards(data.boards || []);
-        setLoading(false);
+        const response = await getBoardById(boardId);
+        setBoard(response.board);
+
+        setIsLoading(false);
       } catch (err) {
-        setError(err.response?.data?.message || 'Không thể lấy danh sách boards. Vui lòng kiểm tra backend.');
-        setLoading(false);
+        console.error('Error fetching board:', err);
+        setError('Failed to load board');
+        setIsLoading(false);
       }
     };
-    fetchBoards();
-  }, []);
 
-  if (loading) return <p className="p-6 text-center text-gray-600 dark:text-gray-400">Đang tải...</p>;
-  if (error) return <p className="p-6 text-center text-red-500">{error}</p>;
+    fetchBoard();
+  }, [boardId])
 
+  const handleUpdateBoard = (updatedBoard) => {
+    setBoard((prevBoard) => ({
+      ...prevBoard,
+      ...updatedBoard
+    }));
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-red-500 dark:text-red-400">{error}</div>
+      </div>
+    );
+  }
+
+  // Generate background style based on board.cover_img
+  const backgroundStyle = board.cover_img
+    ? {
+      backgroundImage: `url(${board.cover_img})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat'
+    }
+    : { backgroundColor: '#f1f5f9' }; // Default light gray background if no image
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-semibold mb-6 text-gray-800 dark:text-gray-200">All Boards</h1>
-      {boards.length === 0 ? (
-        <p className="text-gray-600 dark:text-gray-400">Không có board nào.</p>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {boards.map((board) => (
-            <div
-              key={board.id}
-              className="p-4 bg-white dark:bg-gray-800 rounded-md shadow-sm hover:shadow-md transition"
-            >
-              <h3 className="text-lg font-medium text-gray-800 dark:text-gray-200">
-                {board.name}
-              </h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {board.description || 'Không có mô tả'}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                Workspace: {board.workspace_id}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
+    <div className="flex flex-col h-screen">
 
-export default BoardsPage;
+      <div className="fixed top-0 left-0 right-0 z-50">
+        <Header />
+      </div>
+
+      <div className="flex flex-col h-full pt-16"
+        style={backgroundStyle}>
+        <div className="fixed top-16 left-0 right-0 z-40">
+          <BoardBar board={board} onUpdate={handleUpdateBoard}/>
+        </div>
+        <div className="flex-1 mt-8 overflow-auto">
+          <BoardContent board={board} />
+        </div>
+      </div>
+
+
+
+
+    </div>
+  )
+}
+
+export default Board

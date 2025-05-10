@@ -13,7 +13,7 @@ const RecentlyBoards = ({ allBoardsUser, handleBoardUpdate }) => {
   useEffect(() => {
     const listRecentlyBoards = allBoardsUser
       .flatMap(workspace => workspace.boards)
-      .filter(board => board.viewed_at !== null)
+      .filter(board => board.viewed_at)
       .sort((a, b) => new Date(b.viewed_at) - new Date(a.viewed_at))
       .slice(0, 5);
     setRecentBoards(listRecentlyBoards);
