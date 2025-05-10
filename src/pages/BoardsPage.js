@@ -5,7 +5,7 @@ import Header from '../components/Header/Header'
 import BoardBar from '../components/Board/BoardBar'
 import { getBoardById } from '../services/api'
 import BoardContent from '../components/Board/BoardContent'
-import { getSocket, joinBoard, leaveBoard } from '../services/socket'
+import { getSocket, joinBoard, leaveBoard, initSocket } from '../services/socket'
 
 const Board = () => {
   const { boardId } = useParams();
@@ -38,16 +38,34 @@ const Board = () => {
 
     // Initialize socket
     const socket = getSocket();
-    socketRef.current = socket;
+    
+    // Kiểm tra sự tồn tại của socket và cố gắng khởi tạo nếu không có
+    if (!socket) {
+      console.log('Socket not found, initializing new socket connection');
+      const newSocket = initSocket();
+      if (newSocket) {
+        socketRef.current = newSocket;
+        setupSocketListeners(newSocket);
+      } else {
+        console.error('Failed to initialize socket in BoardsPage');
+      }
+    } else {
+      socketRef.current = socket;
+      setupSocketListeners(socket);
+    }
 
-    if (socket) {
-      console.log('Socket hello:', socket.id);
-      // Join board room
-      joinBoard(boardId);
-
+    // Hàm thiết lập các listener cho socket
+    function setupSocketListeners(socket) {
+      console.log('Setting up socket listeners for board:', boardId);
+      
+      // Tham gia board sau 500ms để đảm bảo kết nối đã ổn định
+      setTimeout(() => {
+        joinBoard(boardId);
+      }, 500);
+      
       // Listen for online users updates
       socket.on('online_users', (data) => {
-        console.log('Online users:', data);
+        console.log('Online users received:', data);
         if (data.boardId === boardId) {
           setOnlineUsers(data.users);
         }
@@ -55,11 +73,11 @@ const Board = () => {
 
       // Listen for board changes
       socket.on('board_updated', (data) => {
-        console.log('Board updated:', data);
+        console.log('Board update received:', data);
         if (data.boardId == boardId) {
           // Update board data based on change type
           if (data.changeType === 'column_order') {
-            console.log('Column order changed:', data.payload);
+            console.log('Updating column order:', data.payload);
             // Handle column reordering
             setBoard(prevBoard => ({
               ...prevBoard,
@@ -104,13 +122,23 @@ const Board = () => {
         }
       });
 
-      // Cleanup on unmount
-      return () => {
-        leaveBoard(boardId);
-        socket.off('online_users');
-        socket.off('board_updated');
-      };
+      // Gửi ping kiểm tra để đảm bảo kết nối hai chiều
+      socket.emit('ping_board', { boardId, message: 'Checking connection' });
+      socket.on('pong_board', (data) => {
+        console.log('Received pong from server:', data);
+      });
     }
+
+    // Cleanup on unmount
+    return () => {
+      console.log('Cleaning up socket listeners for board:', boardId);
+      if (socketRef.current) {
+        leaveBoard(boardId);
+        socketRef.current.off('online_users');
+        socketRef.current.off('board_updated');
+        socketRef.current.off('pong_board');
+      }
+    };
   }, [boardId, board]);
 
   const handleUpdateBoard = (updatedBoard) => {

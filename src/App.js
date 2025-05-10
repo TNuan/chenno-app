@@ -1,11 +1,13 @@
-import React, { useEffect } from 'react';
+import React, { useContext, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import BoardsPage from './pages/BoardsPage';
 import Header from './components/Header/Header';
 import Sidebar from './components/Sidebar/Sidebar';
-import { ThemeProvider } from './context/ThemeContext';
+import { ThemeProvider, ThemeContext } from './context/ThemeContext';
 import DashboardPage from './pages/DashboardPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import HomePage from './pages/HomePage';
@@ -31,6 +33,8 @@ const PrivateRoute = ({ children }) => {
 };
 
 function App() {
+  const theme = localStorage.getItem('theme')
+
   // Initialize socket connection when app starts
   useEffect(() => {
     if (localStorage.getItem('accessToken')) {
@@ -85,6 +89,20 @@ function App() {
             />
           </Routes>
         </BrowserRouter>
+        
+        {/* Toast container với theme đúng */}
+        <ToastContainer
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme={theme === 'dark' ? 'dark' : 'light'}
+        />
       </div>
     </ThemeProvider>
   );

@@ -5,6 +5,8 @@ import Avatar from 'react-avatar';
 import { ThemeContext } from '../../context/ThemeContext';
 import { logout, getNotifications } from '../../services/api';
 import Notifications from './Notifications';
+import { getSocket, initSocket } from '../../services/socket';
+import { toast } from 'react-toastify';
 
 const Header = () => {
   const [isAccountOpen, setIsAccountOpen] = useState(false);
@@ -29,6 +31,64 @@ const Header = () => {
     })
   };
 
+  // Khởi tạo socket và lắng nghe thông báo
+  useEffect(() => {
+    if (currentUser) {
+      // Khởi tạo socket nếu chưa có
+      const socket = getSocket() || initSocket();
+      
+      if (socket) {
+        // Đăng ký lắng nghe sự kiện thông báo mới
+        socket.on('new_notification', (notification) => {
+          console.log('New notification received:', notification);
+          
+          // Cập nhật danh sách thông báo
+          setNotifications(prev => [notification, ...prev]);
+          
+          // Cập nhật số lượng thông báo chưa đọc
+          setUnreadCount(prev => prev + 1);
+          
+          // Hiển thị toast thông báo
+          toast.info(
+            <div>
+              <strong>{notification.sender?.username || 'Hệ thống'}</strong>: {notification.content}
+            </div>,
+            {
+              position: "top-right",
+              autoClose: 5000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+            }
+          );
+          
+          // Thêm hiệu ứng rung cho icon chuông
+          const bellIcon = document.getElementById('notification-bell');
+          if (bellIcon) {
+            bellIcon.classList.add('bell-animation');
+            setTimeout(() => {
+              bellIcon.classList.remove('bell-animation');
+            }, 1000);
+          }
+        });
+
+        // Lắng nghe cập nhật số lượng thông báo chưa đọc
+        socket.on('unread_count', ({ count }) => {
+          console.log('Unread notifications count:', count);
+          // Cập nhật badge hiển thị số lượng thông báo chưa đọc
+          setUnreadCount(count);
+        });
+        
+        // Cleanup function để hủy đăng ký các sự kiện socket khi component unmount
+        return () => {
+          socket.off('new_notification');
+          socket.off('unread_count');
+        };
+      }
+    }
+  }, [currentUser]);
+
   useEffect(() => {
     if (!localStorage.getItem('user')) {
       navigate('/login')
@@ -37,7 +97,7 @@ const Header = () => {
       setCurrentUser(data)
       setIsLoaded(true)
     }
-  }, [])
+  }, []);
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -120,12 +180,12 @@ const Header = () => {
                 className="relative p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
                 title="Thông báo"
               >
-                <FiBell size={20} />
+                <FiBell id="notification-bell" size={20} />
                 {unreadCount > 0 && (
                   <span className="absolute top-0 right-0 -mt-1 -mr-1 flex h-4 w-4">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-xs text-white justify-center items-center">
-                      {unreadCount}
+                      {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   </span>
                 )}
@@ -149,7 +209,7 @@ const Header = () => {
                 className="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
               >
                 <Avatar
-                  name="User Name"
+                  name={currentUser?.username || "User"}
                   size="32"
                   round={true}
                   className="border-2 border-blue-500"
