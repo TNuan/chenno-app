@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -10,6 +10,7 @@ import DashboardPage from './pages/DashboardPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
 import HomePage from './pages/HomePage';
 import WorkspacePage from './pages/WorkspacePage';
+import { initSocket, disconnectSocket } from './services/socket';
 
 // Layout cho các trang được bảo vệ
 const DashboardLayout = ({ children }) => (
@@ -30,6 +31,18 @@ const PrivateRoute = ({ children }) => {
 };
 
 function App() {
+  // Initialize socket connection when app starts
+  useEffect(() => {
+    if (localStorage.getItem('accessToken')) {
+      initSocket();
+    }
+    
+    // Cleanup on app unmount
+    return () => {
+      disconnectSocket();
+    };
+  }, []);
+
   return (
     <ThemeProvider>
       <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 dark:text-white">

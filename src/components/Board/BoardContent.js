@@ -3,36 +3,36 @@ import { Container, Draggable } from 'react-smooth-dnd';
 import { FiPlus, FiLock } from 'react-icons/fi';
 import Column from '../Column/Column';
 import { toast } from 'react-toastify';
-import { getColumnsByBoard, createColumn } from '../../services/api';
+import { createColumn, updateColumn, updateCard } from '../../services/api';
+import { emitBoardChange } from '../../services/socket';
 
-const BoardContent = ({ board }) => {
+const BoardContent = ({ board, socketRef }) => {
     const [columns, setColumns] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [showAddColumn, setShowAddColumn] = useState(false);
     const [newColumnTitle, setNewColumnTitle] = useState('');
 
-
     // Check if user has permission to modify the board
     const canModify = board && board.user_role && board.user_role !== "";
 
-    // Fetch columns data
+    // Use columns from board prop directly
     useEffect(() => {
-        const fetchColumns = async () => {
-            if (!board) return;
-
-            try {
-                const response = await getColumnsByBoard(board.id);
-                setColumns(response.columns);
-                setIsLoading(false);
-            } catch (err) {
-                setError('Failed to load board columns');
-                setIsLoading(false);
-                toast.error('Không thể tải dữ liệu cột');
+        if (!board) return;
+        
+        try {
+            // Sử dụng columns từ board prop trực tiếp
+            if (board.columns) {
+                setColumns(board.columns);
+            } else {
+                // Fallback nếu board.columns không tồn tại
+                setColumns([]);
             }
-        };
-
-        fetchColumns();
+            setIsLoading(false);
+        } catch (err) {
+            setError('Failed to process board columns');
+            setIsLoading(false);
+        }
     }, [board]);
 
     // Handle column drop
@@ -46,10 +46,33 @@ const BoardContent = ({ board }) => {
             const newColumns = [...columns];
             const [removedColumn] = newColumns.splice(dropResult.removedIndex, 1);
             newColumns.splice(dropResult.addedIndex, 0, removedColumn);
-            setColumns(newColumns);
+            
+            // Update column positions locally
+            const updatedColumns = newColumns.map((column, index) => ({
+                ...column,
+                position: index
+            }));
+            
+            setColumns(updatedColumns);
 
-            // TODO: Update column order in backend
-            toast.success('Đã cập nhật vị trí cột');
+            // Update only the moved column in backend
+            // Backend will handle updating positions of other columns
+            const movedColumn = updatedColumns[dropResult.addedIndex];
+            
+            updateColumn(movedColumn.id, {title: movedColumn.title, position: movedColumn.position })
+                .then(() => {
+                    // Emit column order change via socket for real-time sync
+                    emitBoardChange(board.id, 'column_order', updatedColumns);
+                    
+                    toast.success('Đã cập nhật vị trí cột');
+                })
+                .catch(err => {
+                    console.error('Failed to update column position:', err);
+                    toast.error('Không thể cập nhật vị trí cột');
+                    
+                    // Revert changes if API call fails
+                    setColumns(columns);
+                });
         }
     };
 
@@ -62,13 +85,45 @@ const BoardContent = ({ board }) => {
 
         if (dropResult.removedIndex !== null || dropResult.addedIndex !== null) {
             const newColumns = [...columns];
-            const sourceColumn = newColumns.find(col => col.id === columnId);
-            const [removedCard] = sourceColumn.cards.splice(dropResult.removedIndex, 1);
-            sourceColumn.cards.splice(dropResult.addedIndex, 0, removedCard);
-            setColumns(newColumns);
+            const sourceColumnIndex = newColumns.findIndex(col => col.id === columnId);
+            
+            if (sourceColumnIndex !== -1) {
+                const sourceColumn = newColumns[sourceColumnIndex];
+                const [removedCard] = sourceColumn.cards.splice(dropResult.removedIndex, 1);
+                sourceColumn.cards.splice(dropResult.addedIndex, 0, removedCard);
+                
+                // Update card positions
+                sourceColumn.cards = sourceColumn.cards.map((card, index) => ({
+                    ...card,
+                    position: index
+                }));
+                
+                setColumns(newColumns);
+                
+                // Update card positions in backend
+                const updateCardPromises = sourceColumn.cards.map(card => 
+                    updateCard(card.id, { position: card.position })
+                );
+                
+                Promise.all(updateCardPromises)
+                    .then(() => {
+                        // Emit card move via socket for real-time sync
+                        emitBoardChange(board.id, 'card_move', {
+                            sourceColumnId: columnId,
+                            destinationColumnId: columnId,
+                            cards: [sourceColumn]
+                        });
 
-            // TODO: Update card position in backend
-            toast.success('Đã cập nhật vị trí thẻ');
+                        toast.success('Đã cập nhật vị trí thẻ');
+                    })
+                    .catch(err => {
+                        console.error('Failed to update card positions:', err);
+                        toast.error('Không thể cập nhật vị trí thẻ');
+                        
+                        // Revert changes if API call fails
+                        setColumns(columns);
+                    });
+            }
         }
     };
 
@@ -84,8 +139,21 @@ const BoardContent = ({ board }) => {
         );
         setColumns(newColumns);
 
-        // TODO: Update column in backend
-        toast.success('Đã cập nhật thông tin cột');
+        // Update column in backend
+        updateColumn(updatedColumn.id, { title: updatedColumn.title })
+            .then(() => {
+                // Emit column update via socket for real-time sync
+                emitBoardChange(board.id, 'column_update', updatedColumn);
+                
+                toast.success('Đã cập nhật thông tin cột');
+            })
+            .catch(err => {
+                console.error('Failed to update column:', err);
+                toast.error('Không thể cập nhật cột');
+                
+                // Revert changes if API call fails
+                setColumns(columns);
+            });
     };
 
     // Handle add new column
@@ -106,9 +174,14 @@ const BoardContent = ({ board }) => {
                 board_id: board.id,
             });
 
-            setColumns([...columns, response.column]);
+            const newColumn = response.column;
+            setColumns([...columns, newColumn]);
             setNewColumnTitle('');
             setShowAddColumn(false);
+            
+            // Emit new column via socket for real-time sync
+            emitBoardChange(board.id, 'column_add', newColumn);
+            
             toast.success('Đã thêm cột mới');
         } catch (err) {
             toast.error('Không thể thêm cột mới');
@@ -145,14 +218,11 @@ const BoardContent = ({ board }) => {
         );
     }
 
-
-
     return (
         <div className="flex flex-col min-h-full"
         >
             {/* Board Content - Fixed height with horizontal scroll */}
             <div
-
                 className="flex-1 p-4 overflow-x-auto overflow-y-hidden"
             >
                 <div className="inline-flex min-w-full pb-4 h-full">
@@ -177,6 +247,8 @@ const BoardContent = ({ board }) => {
                                         onCardDrop={onCardDrop}
                                         onUpdateColumnState={handleColumnUpdate}
                                         canModify={canModify}
+                                        socketRef={socketRef}
+                                        boardId={board.id}
                                     />
                                 </div>
                             </Draggable>
@@ -235,7 +307,6 @@ const BoardContent = ({ board }) => {
                     </Container>
                 </div>
             </div>
-
         </div>
     );
 };

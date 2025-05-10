@@ -187,9 +187,10 @@ export const getCardsByColumn = async (columnId) => {
   return response.data;
 }
 
-
-
-
+export const updateCard = async (cardId, data) => {
+  const response = await api.put(`/cards/${cardId}`, data);
+  return response.data;
+}
 
 // Notification API
 export const getNotifications = async () => {

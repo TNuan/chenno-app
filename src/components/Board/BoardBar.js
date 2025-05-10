@@ -7,8 +7,9 @@ import { useNavigate } from 'react-router-dom';
 import { toggleFavoriteBoard, updateBoard } from '../../services/api';
 import { toast } from 'react-toastify';
 import { createEditableProps } from '../../utils/contentEditable';
+import { emitBoardChange } from '../../services/socket';
 
-const BoardBar = ({ board, onUpdate, userRole }) => {
+const BoardBar = ({ board, onUpdate, onlineUsers = [] }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -45,10 +46,15 @@ const BoardBar = ({ board, onUpdate, userRole }) => {
     try {
       setIsToggling(true);
       await toggleFavoriteBoard(board.id);
-      onUpdate({
+      const updatedData = {
         ...board,
         is_favorite: !board.is_favorite
-      });
+      };
+      onUpdate(updatedData);
+      
+      // Emit board change via socket
+      emitBoardChange(board.id, 'board_update', { is_favorite: !board.is_favorite });
+      
       toast.success(
         board.is_favorite
           ? 'Đã xóa khỏi danh sách yêu thích'
@@ -74,11 +80,18 @@ const BoardBar = ({ board, onUpdate, userRole }) => {
     }
 
     try {
-      const updatedBoard = await updateBoard(board.id, { name: boardTitle.trim() });
-      onUpdate({
+      const updatedName = boardTitle.trim();
+      await updateBoard(board.id, { name: updatedName });
+      
+      const updatedData = {
         ...board,
-        name: boardTitle.trim()
-      });
+        name: updatedName
+      };
+      onUpdate(updatedData);
+      
+      // Emit board change via socket
+      emitBoardChange(board.id, 'board_update', { name: updatedName });
+      
       toast.success('Đã cập nhật tên bảng');
     } catch (error) {
       console.error('Update board title failed:', error);
@@ -101,11 +114,17 @@ const BoardBar = ({ board, onUpdate, userRole }) => {
     }
 
     try {
-      const updatedBoard = await updateBoard(board.id, { visibility });
-      onUpdate({
+      await updateBoard(board.id, { visibility });
+      
+      const updatedData = {
         ...board,
         visibility
-      });
+      };
+      onUpdate(updatedData);
+      
+      // Emit board change via socket
+      emitBoardChange(board.id, 'board_update', { visibility });
+      
       toast.success('Đã cập nhật quyền riêng tư của bảng');
     } catch (error) {
       console.error('Update board visibility failed:', error);
@@ -208,15 +227,48 @@ const BoardBar = ({ board, onUpdate, userRole }) => {
       </div>
 
       {/* View-only notification banner */}
-            {!canEdit && (
-                <div className=" text-yellow-200 px-4 py-2 flex items-center justify-center text-sm font-medium">
-                    <FiLock className="mr-2" /> 
-                    Bạn đang xem bảng này ở chế độ chỉ đọc. Chỉ thành viên mới có thể chỉnh sửa.
-                </div>
-            )}
+      {!canEdit && (
+        <div className="text-yellow-200 px-4 py-2 flex items-center justify-center text-sm font-medium">
+          <FiLock className="mr-2" /> 
+          Bạn đang xem bảng này ở chế độ chỉ đọc. Chỉ thành viên mới có thể chỉnh sửa.
+        </div>
+      )}
 
       {/* Right Section */}
       <div className="flex items-center space-x-1.5">
+        {/* Online Users Avatars */}
+        {onlineUsers.length > 0 && (
+          <div className="flex items-center mr-3">
+            <div className="flex -space-x-2 overflow-hidden">
+              {onlineUsers.slice(0, 5).map(user => (
+                <div 
+                  key={user.id} 
+                  className="inline-block h-7 w-7 rounded-full ring-2 ring-white dark:ring-gray-800"
+                  title={user.name || user.email}
+                >
+                  {user.avatar ? (
+                    <img 
+                      src={user.avatar} 
+                      alt={user.name || user.email}
+                      className="h-full w-full rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full flex items-center justify-center bg-blue-500 rounded-full text-white text-xs font-bold">
+                      {(user.name || user.email || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="absolute w-2.5 h-2.5 bg-green-500 rounded-full border border-white bottom-0 right-0"></div>
+                </div>
+              ))}
+              {onlineUsers.length > 5 && (
+                <div className="inline-block h-7 w-7 rounded-full bg-gray-200 dark:bg-gray-600 border-2 border-white dark:border-gray-800 flex items-center justify-center text-xs font-medium text-gray-800 dark:text-white">
+                  +{onlineUsers.length - 5}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Members Button */}
         <button
           onClick={() => { }}
