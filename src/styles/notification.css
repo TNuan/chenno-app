@@ -1,0 +1,55 @@
+/* Hiệu ứng nháy cho icon thông báo khi có thông báo mới */
+@keyframes bellRing {
+  0% { transform: rotate(0); }
+  10% { transform: rotate(15deg); }
+  20% { transform: rotate(-15deg); }
+  30% { transform: rotate(10deg); }
+  40% { transform: rotate(-10deg); }
+  50% { transform: rotate(5deg); }
+  60% { transform: rotate(-5deg); }
+  70% { transform: rotate(0); }
+  100% { transform: rotate(0); }
+}
+
+.bell-animation {
+  animation: bellRing 1s ease;
+}
+
+/* Style cho thông báo chưa đọc */
+.notification-unread {
+  position: relative;
+}
+
+.notification-unread::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -8px;
+  transform: translateY(-50%);
+  width: 8px;
+  height: 8px;
+  background-color: #3b82f6;
+  border-radius: 50%;
+}
+
+/* Hiệu ứng xuất hiện của panel thông báo */
+.notification-panel-enter {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.notification-panel-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 200ms, transform 200ms;
+}
+
+.notification-panel-exit {
+  opacity: 1;
+}
+
+.notification-panel-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 200ms, transform 200ms;
+}

@@ -13,6 +13,7 @@ body {
 /* width */
 ::-webkit-scrollbar {
   width: 2px;
+  height: 10px;
 }
 
 /* Track */
@@ -29,4 +30,36 @@ body {
 /* Handle on hover */
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+/* Add this to your CSS file or create a <style> element in your HTML */
+.column-drag-ghost {
+  opacity: 0.4;
+  background-color: #f3f4f6;
+  border: 2px dashed #9ca3af;
+  border-radius: 0.5rem;
+  transform: rotate(2deg);
+}
+
+.column-drop-preview {
+  background-color: rgba(54, 65, 82, 0.1);
+  border: 2px dashed #9ca3af;
+  border-radius: 0.5rem;
+}
+
+.card-ghost {
+  opacity: 0.4;
+  background-color: #e5e7eb;
+  transform: rotate(1deg);
+}
+
+.card-ghost-drop {
+  transition: transform 0.18s ease-in-out;
+}
+
+.card-drop-preview {
+  background-color: rgba(54, 65, 82, 0.1);
+  border: 1px dashed #9ca3af;
+  margin: 5px;
+  border-radius: 0.5rem;
 }

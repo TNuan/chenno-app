@@ -22,8 +22,17 @@ const HomePage = () => {
   };
 
   const handleBoardCreated = (board) => {
-    // Update your boards list or trigger a refresh
-    // You might want to refetch the boards list here
+    setAllBoardsUser(prevWorkspaces =>
+      prevWorkspaces.map(workspace => {
+        if (workspace.id === board.workspace_id) {
+          return {
+            ...workspace,
+            boards: [...workspace.boards, board]
+          };
+        }
+        return workspace;
+      })
+    );
   };
 
   const handleBoardUpdate = (updatedBoard) => {
