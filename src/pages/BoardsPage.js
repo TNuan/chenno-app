@@ -5,7 +5,15 @@ import Header from '../components/Header/Header'
 import BoardBar from '../components/Board/BoardBar'
 import { getBoardById } from '../services/api'
 import BoardContent from '../components/Board/BoardContent'
-import { getSocket, joinBoard, leaveBoard, initSocket } from '../services/socket'
+import { 
+  getSocket, 
+  joinBoard, 
+  leaveBoard, 
+  initSocket, 
+  requestOnlineUsers,
+  startOnlineUsersPolling,
+  stopOnlineUsersPolling
+} from '../services/socket'
 
 const Board = () => {
   const { boardId } = useParams();
@@ -15,6 +23,7 @@ const Board = () => {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const navigate = useNavigate();
   const socketRef = useRef(null);
+  const usersPollingRef = useRef(null);
 
   useEffect(() => {
     const fetchBoard = async () => {
@@ -32,49 +41,103 @@ const Board = () => {
     fetchBoard();
   }, [boardId]);
 
-  // Setup socket connection
+  // Setup socket connection - Cải thiện để tránh request nhiều lần
   useEffect(() => {
-    if (!board) return;
+    let isMounted = true;
+    let socketInstance = null;
 
-    // Initialize socket
-    const socket = getSocket();
-    
-    // Kiểm tra sự tồn tại của socket và cố gắng khởi tạo nếu không có
-    if (!socket) {
-      console.log('Socket not found, initializing new socket connection');
-      const newSocket = initSocket();
-      if (newSocket) {
-        socketRef.current = newSocket;
-        setupSocketListeners(newSocket);
-      } else {
-        console.error('Failed to initialize socket in BoardsPage');
+    const initializeSocket = async () => {
+      try {
+        // Get or initialize socket
+        const socket = await getSocket();
+        
+        // Only proceed if component is still mounted
+        if (!isMounted) return;
+        
+        // Store socket in ref for later use
+        socketRef.current = socket;
+        
+        // Setup listeners
+        setupSocketListeners(socket);
+      } catch (error) {
+        console.error('Failed to initialize socket:', error);
       }
-    } else {
-      socketRef.current = socket;
-      setupSocketListeners(socket);
-    }
+    };
 
     // Hàm thiết lập các listener cho socket
     function setupSocketListeners(socket) {
       console.log('Setting up socket listeners for board:', boardId);
       
-      // Tham gia board sau 500ms để đảm bảo kết nối đã ổn định
-      setTimeout(() => {
-        joinBoard(boardId);
-      }, 500);
+      // Clear existing listeners first to prevent duplicates
+      socket.off('online_users');
+      socket.off('user_joined');
+      socket.off('user_left');
+      socket.off('board_updated');
+      socket.off('pong_board');
+      
+      // Join board when socket is ready - only once
+      if (socket.connected) {
+        console.log('Socket already connected, joining board immediately');
+        (async () => {
+          await joinBoard(boardId);
+          // Request online users ONCE after joining
+          await requestOnlineUsers(boardId);
+          
+          // Không cần polling nữa, chỉ đánh dấu là đã yêu cầu
+          if (isMounted && !usersPollingRef.current) {
+            usersPollingRef.current = true;
+          }
+        })();
+      } else {
+        console.log('Socket not connected, waiting for connection');
+        
+        // Only add connect listener if not already connected
+        const connectHandler = async () => {
+          console.log('Socket connected, now joining board');
+          socket.off('connect', connectHandler); // Remove listener after first connection
+          
+          await joinBoard(boardId);
+          await requestOnlineUsers(boardId);
+          
+          // Không cần polling nữa, chỉ đánh dấu là đã yêu cầu
+          if (isMounted && !usersPollingRef.current) {
+            usersPollingRef.current = true;
+          }
+        };
+        
+        socket.on('connect', connectHandler);
+      }
       
       // Listen for online users updates
       socket.on('online_users', (data) => {
         console.log('Online users received:', data);
-        if (data.boardId === boardId) {
-          setOnlineUsers(data.users);
+        if (data.boardId === boardId && isMounted) {
+          setOnlineUsers(data.users || []);
+        }
+      });
+
+      // Listen for user join events - Chỉ lấy thông tin khi có người tham gia
+      socket.on('user_joined', (data) => {
+        console.log('User joined:', data);
+        if (data.boardId === boardId && data.user) {
+          // Yêu cầu danh sách online users cập nhật khi có người tham gia
+          requestOnlineUsers(boardId);
+        }
+      });
+
+      // Listen for user left events - Chỉ lấy thông tin khi có người rời đi
+      socket.on('user_left', (data) => {
+        console.log('User left:', data);
+        if (data.boardId === boardId && data.userId) {
+          // Yêu cầu danh sách online users cập nhật khi có người rời đi
+          requestOnlineUsers(boardId);
         }
       });
 
       // Listen for board changes
       socket.on('board_updated', (data) => {
         console.log('Board update received:', data);
-        if (data.boardId == boardId) {
+        if (data.boardId == boardId && isMounted) {
           // Update board data based on change type
           if (data.changeType === 'column_order') {
             console.log('Updating column order:', data.payload);
@@ -122,24 +185,33 @@ const Board = () => {
         }
       });
 
-      // Gửi ping kiểm tra để đảm bảo kết nối hai chiều
+      // Gửi ping kiểm tra để đảm bảo kết nối hai chiều - Chỉ gửi một lần
       socket.emit('ping_board', { boardId, message: 'Checking connection' });
       socket.on('pong_board', (data) => {
         console.log('Received pong from server:', data);
       });
     }
 
+    // Start the initialization process - Only once
+    initializeSocket();
+
     // Cleanup on unmount
     return () => {
+      isMounted = false;
       console.log('Cleaning up socket listeners for board:', boardId);
       if (socketRef.current) {
         leaveBoard(boardId);
         socketRef.current.off('online_users');
+        socketRef.current.off('user_joined');
+        socketRef.current.off('user_left');
         socketRef.current.off('board_updated');
         socketRef.current.off('pong_board');
       }
+      
+      // Không cần dừng polling vì chúng ta không thực sự tạo interval
+      usersPollingRef.current = null;
     };
-  }, [boardId, board]);
+  }, [boardId]); // Chỉ phụ thuộc vào boardId
 
   const handleUpdateBoard = (updatedBoard) => {
     setBoard((prevBoard) => ({

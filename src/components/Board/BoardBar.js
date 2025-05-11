@@ -10,6 +10,7 @@ import { createEditableProps } from '../../utils/contentEditable';
 import { emitBoardChange } from '../../services/socket';
 
 const BoardBar = ({ board, onUpdate, onlineUsers = [] }) => {
+  console.log('BoardBar', onlineUsers);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isToggling, setIsToggling] = useState(false);
   const [isEditingTitle, setIsEditingTitle] = useState(false);

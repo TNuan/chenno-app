@@ -7,6 +7,7 @@ import { createColumn, updateColumn, updateCard } from '../../services/api';
 import { emitBoardChange } from '../../services/socket';
 
 const BoardContent = ({ board, socketRef }) => {
+    console.log('BoardContent component rendered');
     const [columns, setColumns] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -42,7 +43,7 @@ const BoardContent = ({ board, socketRef }) => {
             return;
         }
 
-        if (dropResult.removedIndex !== null || dropResult.addedIndex !== null) {
+        if (dropResult.removedIndex !== null && dropResult.addedIndex !== null && dropResult.removedIndex !== dropResult.addedIndex) {
             const newColumns = [...columns];
             const [removedColumn] = newColumns.splice(dropResult.removedIndex, 1);
             newColumns.splice(dropResult.addedIndex, 0, removedColumn);
@@ -64,11 +65,11 @@ const BoardContent = ({ board, socketRef }) => {
                     // Emit column order change via socket for real-time sync
                     emitBoardChange(board.id, 'column_order', updatedColumns);
                     
-                    toast.success('Đã cập nhật vị trí cột');
+                    // toast.success('Đã cập nhật vị trí cột');
                 })
                 .catch(err => {
                     console.error('Failed to update column position:', err);
-                    toast.error('Không thể cập nhật vị trí cột');
+                    // toast.error('Không thể cập nhật vị trí cột');
                     
                     // Revert changes if API call fails
                     setColumns(columns);
@@ -114,11 +115,11 @@ const BoardContent = ({ board, socketRef }) => {
                             cards: [sourceColumn]
                         });
 
-                        toast.success('Đã cập nhật vị trí thẻ');
+                        // toast.success('Đã cập nhật vị trí thẻ');
                     })
                     .catch(err => {
                         console.error('Failed to update card positions:', err);
-                        toast.error('Không thể cập nhật vị trí thẻ');
+                        // toast.error('Không thể cập nhật vị trí thẻ');
                         
                         // Revert changes if API call fails
                         setColumns(columns);
@@ -145,11 +146,11 @@ const BoardContent = ({ board, socketRef }) => {
                 // Emit column update via socket for real-time sync
                 emitBoardChange(board.id, 'column_update', updatedColumn);
                 
-                toast.success('Đã cập nhật thông tin cột');
+                // toast.success('Đã cập nhật thông tin cột');
             })
             .catch(err => {
                 console.error('Failed to update column:', err);
-                toast.error('Không thể cập nhật cột');
+                // toast.error('Không thể cập nhật cột');
                 
                 // Revert changes if API call fails
                 setColumns(columns);
