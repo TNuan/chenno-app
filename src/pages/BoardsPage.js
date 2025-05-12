@@ -5,15 +5,16 @@ import Header from '../components/Header/Header'
 import BoardBar from '../components/Board/BoardBar'
 import { getBoardById } from '../services/api'
 import BoardContent from '../components/Board/BoardContent'
-import { 
-  getSocket, 
-  joinBoard, 
-  leaveBoard, 
-  initSocket, 
+import {
+  getSocket,
+  joinBoard,
+  leaveBoard,
+  initSocket,
   requestOnlineUsers,
   startOnlineUsersPolling,
   stopOnlineUsersPolling
 } from '../services/socket'
+import { useAlert } from '../contexts/AlertContext';
 
 const Board = () => {
   const { boardId } = useParams();
@@ -24,6 +25,7 @@ const Board = () => {
   const navigate = useNavigate();
   const socketRef = useRef(null);
   const usersPollingRef = useRef(null);
+  const { showAccessDenied } = useAlert();
 
   useEffect(() => {
     const fetchBoard = async () => {
@@ -50,13 +52,13 @@ const Board = () => {
       try {
         // Get or initialize socket
         const socket = await getSocket();
-        
+
         // Only proceed if component is still mounted
         if (!isMounted) return;
-        
+
         // Store socket in ref for later use
         socketRef.current = socket;
-        
+
         // Setup listeners
         setupSocketListeners(socket);
       } catch (error) {
@@ -67,14 +69,14 @@ const Board = () => {
     // Hàm thiết lập các listener cho socket
     function setupSocketListeners(socket) {
       console.log('Setting up socket listeners for board:', boardId);
-      
+
       // Clear existing listeners first to prevent duplicates
       socket.off('online_users');
       socket.off('user_joined');
       socket.off('user_left');
       socket.off('board_updated');
       socket.off('pong_board');
-      
+
       // Join board when socket is ready - only once
       if (socket.connected) {
         console.log('Socket already connected, joining board immediately');
@@ -82,7 +84,7 @@ const Board = () => {
           await joinBoard(boardId);
           // Request online users ONCE after joining
           await requestOnlineUsers(boardId);
-          
+
           // Không cần polling nữa, chỉ đánh dấu là đã yêu cầu
           if (isMounted && !usersPollingRef.current) {
             usersPollingRef.current = true;
@@ -90,24 +92,24 @@ const Board = () => {
         })();
       } else {
         console.log('Socket not connected, waiting for connection');
-        
+
         // Only add connect listener if not already connected
         const connectHandler = async () => {
           console.log('Socket connected, now joining board');
           socket.off('connect', connectHandler); // Remove listener after first connection
-          
+
           await joinBoard(boardId);
           await requestOnlineUsers(boardId);
-          
+
           // Không cần polling nữa, chỉ đánh dấu là đã yêu cầu
           if (isMounted && !usersPollingRef.current) {
             usersPollingRef.current = true;
           }
         };
-        
+
         socket.on('connect', connectHandler);
       }
-      
+
       // Listen for online users updates
       socket.on('online_users', (data) => {
         console.log('Online users received:', data);
@@ -137,6 +139,7 @@ const Board = () => {
       // Listen for board changes
       socket.on('board_updated', (data) => {
         console.log('Board update received:', data);
+        console.log('Current board:', board);
         if (data.boardId == boardId && isMounted) {
           // Update board data based on change type
           if (data.changeType === 'column_order') {
@@ -177,6 +180,28 @@ const Board = () => {
             }));
           } else if (data.changeType === 'board_update') {
             // Handle board updates (title, visibility, etc)
+            setBoard(prevBoard => {
+              const updatedBoard = {
+                ...prevBoard,
+                ...data.payload
+              };
+
+              // Kiểm tra nếu board chuyển sang private và người dùng không có quyền truy cập
+              if (
+                data.payload.visibility === 0 &&
+                (!updatedBoard.user_role || updatedBoard.user_role === '')
+              ) {
+                // Sử dụng alert toàn cục thay vì state local
+                showAccessDenied(
+                  'Bảng này đã được chuyển sang chế độ riêng tư và bạn không còn quyền truy cập.',
+                  () => navigate('/')
+                );
+              }
+
+              return updatedBoard;
+            });
+          } else if (data.changeType === 'board_update') {
+            // Handle board updates (title, visibility, etc)
             setBoard(prevBoard => ({
               ...prevBoard,
               ...data.payload
@@ -196,7 +221,43 @@ const Board = () => {
                 return col;
               })
             }));
+          } else if (data.changeType === 'add_member') {
+            console.log('New member added:', data.payload);
+            // Handle new member addition
+
+            setBoard(prevBoard => {
+              const updatedBoard = {
+                ...prevBoard,
+                members: [...prevBoard.members, data.payload]
+              }
+
+              if (data.payload.user_id == updatedBoard.user_getting) {
+                // Nếu người dùng mới được thêm là người đang xem bảng
+                showAccessDenied(
+                  'Bạn được thay đổi quyền đối với bảng này. Reload lại ngay bây giờ.',
+                  () => window.location.reload()
+                );
+              }
+              return updatedBoard;
+            });
+          } else if (data.changeType === 'remove_member') {
+            console.log('Member removed:', data.payload);
+            // Handle member removal
+            setBoard(prevBoard => {
+              const updatedMembers = prevBoard.members.filter(member => member.id !== data.payload.user_id);
+              const updatedBoard = { ...prevBoard, members: updatedMembers };
+              // Nếu người dùng bị xóa là người đang xem bảng
+              if (data.payload.user_id == updatedBoard.user_getting) {
+                // Sử dụng alert toàn cục thay vì state local
+                showAccessDenied(
+                  'Bạn được thay đổi quyền đối với bảng này. Reload lại ngay bây giờ.',
+                  () => window.location.reload()
+                );
+              }
+              return updatedBoard;
+            });
           }
+
         }
       });
 
@@ -222,7 +283,7 @@ const Board = () => {
         socketRef.current.off('board_updated');
         socketRef.current.off('pong_board');
       }
-      
+
       // Không cần dừng polling vì chúng ta không thực sự tạo interval
       usersPollingRef.current = null;
     };
@@ -260,7 +321,7 @@ const Board = () => {
       backgroundRepeat: 'no-repeat'
     }
     : { backgroundColor: '#f1f5f9' }; // Default light gray background if no image
-  
+
   return (
     <div className="flex flex-col h-screen">
       <div className="fixed top-0 left-0 right-0 z-50">
@@ -270,15 +331,15 @@ const Board = () => {
       <div className="flex flex-col h-full pt-16"
         style={backgroundStyle}>
         <div className="fixed top-16 left-0 right-0 z-40">
-          <BoardBar 
-            board={board} 
-            onUpdate={handleUpdateBoard} 
+          <BoardBar
+            board={board}
+            onUpdate={handleUpdateBoard}
             onlineUsers={onlineUsers}
           />
         </div>
         <div className="flex-1 mt-8 overflow-auto">
-          <BoardContent 
-            board={board} 
+          <BoardContent
+            board={board}
             socketRef={socketRef.current}
           />
         </div>
