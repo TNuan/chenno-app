@@ -35,9 +35,9 @@ body {
 /* Add this to your CSS file or create a <style> element in your HTML */
 .column-drag-ghost {
   opacity: 0.4;
-  background-color: #f3f4f6;
-  border: 2px dashed #9ca3af;
-  border-radius: 0.5rem;
+  /* background-color: #f3f4f6; */
+  /* border: 2px dashed #9ca3af;
+  border-radius: 0.5rem; */
   transform: rotate(2deg);
 }
 
@@ -48,9 +48,9 @@ body {
 }
 
 .card-ghost {
-  opacity: 0.4;
+  opacity: 0.6;
   background-color: #e5e7eb;
-  transform: rotate(1deg);
+  transform: rotate(2deg);
 }
 
 .card-ghost-drop {

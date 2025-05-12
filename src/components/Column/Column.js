@@ -179,7 +179,7 @@ const Column = ({ column, onCardDrop, onUpdateColumnState, onAddCard,  canModify
 
   return (
     <>
-      <div className="flex flex-col w-72 bg-gray-100/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg shadow-sm mx-2 h-full">
+      <div className="flex flex-col w-72 bg-gray-100/80 dark:bg-gray-800/80 rounded-lg shadow-sm mx-2 h-full">
         <div className="flex items-center justify-between p-3 border-b border-gray-200 dark:border-gray-700">
           {isEditing && canModify ? (
             <input {...editableProps} />
@@ -240,7 +240,7 @@ const Column = ({ column, onCardDrop, onUpdateColumnState, onAddCard,  canModify
           )}
         </div>
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ maxHeight: 'calc(100vh - 160px)' }}>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden px-2" style={{ maxHeight: 'calc(100vh - 160px)' }}>
         
           {column.cards && column.cards.length > 0 ? (
             <Container

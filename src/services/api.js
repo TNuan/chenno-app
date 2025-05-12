@@ -161,6 +161,21 @@ export const getAllBoards = async () => {
   return response.data;
 }
 
+export const addMemberToBoard = async (boardId, data) => {
+  const response = await api.post(`/boards/${boardId}/members`, data);
+  return response.data;
+};
+
+export const updateBoardMemberRole = async (boardId, userId, data) => {
+  const response = await api.put(`/boards/${boardId}/members/${userId}`, data);
+  return response.data;
+};
+
+export const removeBoardMember = async (boardId, userId) => {
+  const response = await api.delete(`/boards/${boardId}/members/${userId}`);
+  return response.data;
+};
+
 // Api for Columns
 export const getColumnsByBoard = async (boardId) => {
   const response = await api.get(`/columns/${boardId}`);

@@ -13,6 +13,7 @@ import VerifyEmailPage from './pages/VerifyEmailPage';
 import HomePage from './pages/HomePage';
 import WorkspacePage from './pages/WorkspacePage';
 import { initSocket, disconnectSocket } from './services/socket';
+import { AlertProvider } from './contexts/AlertContext';
 
 // Layout cho các trang được bảo vệ
 const DashboardLayout = ({ children }) => (
@@ -58,61 +59,63 @@ function App() {
 
   return (
     <ThemeProvider>
-      <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 dark:text-white">
-        <BrowserRouter>
-          <Routes>
-            {/* Root Redirect */}
-            <Route path="/" element={<Navigate to="/h" replace />} />
+      <AlertProvider>
+        <div className="flex flex-col min-h-screen bg-white dark:bg-gray-900 dark:text-white">
+          <BrowserRouter>
+            <Routes>
+              {/* Root Redirect */}
+              <Route path="/" element={<Navigate to="/h" replace />} />
 
-            {/* Public Routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
-            <Route path="/verify-email" element={<VerifyEmailPage />} />
-            
-            {/* Protected Routes */}
-            <Route path="/h/*" element={<PrivateRoute><HomePage/></PrivateRoute>} />
-            <Route path="/w/:workspaceId/*" element={<PrivateRoute><WorkspacePage/></PrivateRoute>} />
-            <Route path="/b/:boardId/*" element={<PrivateRoute><BoardsPage/></PrivateRoute>} />
+              {/* Public Routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
+              
+              {/* Protected Routes */}
+              <Route path="/h/*" element={<PrivateRoute><HomePage/></PrivateRoute>} />
+              <Route path="/w/:workspaceId/*" element={<PrivateRoute><WorkspacePage/></PrivateRoute>} />
+              <Route path="/b/:boardId/*" element={<PrivateRoute><BoardsPage/></PrivateRoute>} />
 
-            {/* 404 Route */}
-            <Route
-              path="*"
-              element={
-                <div className="flex items-center justify-center min-h-screen">
-                  <div className="text-center">
-                    <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-200">
-                      404
-                    </h1>
-                    <p className="mt-2 text-gray-600 dark:text-gray-400">
-                      Trang không tồn tại
-                    </p>
-                    <button
-                      onClick={() => window.history.back()}
-                      className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                    >
-                      Quay lại
-                    </button>
+              {/* 404 Route */}
+              <Route
+                path="*"
+                element={
+                  <div className="flex items-center justify-center min-h-screen">
+                    <div className="text-center">
+                      <h1 className="text-4xl font-bold text-gray-800 dark:text-gray-200">
+                        404
+                      </h1>
+                      <p className="mt-2 text-gray-600 dark:text-gray-400">
+                        Trang không tồn tại
+                      </p>
+                      <button
+                        onClick={() => window.history.back()}
+                        className="mt-4 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                      >
+                        Quay lại
+                      </button>
+                    </div>
                   </div>
-                </div>
-              }
-            />
-          </Routes>
-        </BrowserRouter>
-        
-        {/* Toast container với theme đúng */}
-        <ToastContainer
-          position="top-right"
-          autoClose={5000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme={theme === 'dark' ? 'dark' : 'light'}
-        />
-      </div>
+                }
+              />
+            </Routes>
+          </BrowserRouter>
+          
+          {/* Toast container với theme đúng */}
+          <ToastContainer
+            position="top-right"
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme={theme === 'dark' ? 'dark' : 'light'}
+          />
+        </div>
+      </AlertProvider>
     </ThemeProvider>
   );
 }
