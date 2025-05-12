@@ -33,14 +33,14 @@ const Notifications = ({
   }, [isOpen, onClose]);
 
   // Khi mở notification panel, gửi socket event báo là user đã đọc thông báo
-  useEffect(() => {
-    if (isOpen) {
-      const socket = getSocket();
-      if (socket) {
-        socket.emit('notifications_seen');
-      }
-    }
-  }, [isOpen]);
+  // useEffect(() => {
+  //   if (isOpen) {
+  //     const socket = getSocket();
+  //     if (socket) {
+  //       socket.emit('notifications_seen');
+  //     }
+  //   }
+  // }, [isOpen]);
 
   const handleContentClick = (e) => {
     e.stopPropagation();
@@ -57,10 +57,10 @@ const Notifications = ({
       onUpdate(updatedNotifications);
       
       // Gửi socket event để cập nhật số lượng thông báo chưa đọc
-      const socket = getSocket();
-      if (socket) {
-        socket.emit('notification_read', { notificationId });
-      }
+      // const socket = getSocket();
+      // if (socket) {
+      //   socket.emit('notification_read', { notificationId });
+      // }
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
       toast.error('Không thể đánh dấu thông báo đã đọc');

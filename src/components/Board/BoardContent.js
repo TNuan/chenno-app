@@ -7,7 +7,6 @@ import { createColumn, updateColumn, updateCard } from '../../services/api';
 import { emitBoardChange } from '../../services/socket';
 
 const BoardContent = ({ board, socketRef }) => {
-    console.log('BoardContent component rendered');
     const [columns, setColumns] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -83,8 +82,9 @@ const BoardContent = ({ board, socketRef }) => {
             toast.warning('Bạn không có quyền cập nhật bảng này');
             return;
         }
+        console.log('Card drop result:', dropResult);
 
-        if (dropResult.removedIndex !== null || dropResult.addedIndex !== null) {
+        if (dropResult.removedIndex !== null || dropResult.addedIndex !== null || dropResult.payload) {
             const newColumns = [...columns];
             const sourceColumnIndex = newColumns.findIndex(col => col.id === columnId);
             
@@ -146,15 +146,33 @@ const BoardContent = ({ board, socketRef }) => {
                 // Emit column update via socket for real-time sync
                 emitBoardChange(board.id, 'column_update', updatedColumn);
                 
-                // toast.success('Đã cập nhật thông tin cột');
             })
             .catch(err => {
                 console.error('Failed to update column:', err);
                 // toast.error('Không thể cập nhật cột');
-                
-                // Revert changes if API call fails
                 setColumns(columns);
             });
+    };
+
+    const handleAddCard = (card) => {
+        if (!canModify) {
+            toast.warning('Bạn không có quyền cập nhật bảng này');
+            return;
+        }
+
+        console.log('Adding card:', card);
+        const newColumns = columns.map(col => {
+            if (col.id === card.column_id) {
+                return {
+                    ...col,
+                    cards: [...col.cards, card]
+                };
+            }
+            return col;
+        });
+        setColumns(newColumns);
+        // Emit new card via socket for real-time sync
+        emitBoardChange(board.id, 'card_created', card);
     };
 
     // Handle add new column
@@ -247,9 +265,11 @@ const BoardContent = ({ board, socketRef }) => {
                                         column={column}
                                         onCardDrop={onCardDrop}
                                         onUpdateColumnState={handleColumnUpdate}
+                                        onAddCard={handleAddCard}
                                         canModify={canModify}
                                         socketRef={socketRef}
                                         boardId={board.id}
+                                        boardMembers={board.members}
                                     />
                                 </div>
                             </Draggable>

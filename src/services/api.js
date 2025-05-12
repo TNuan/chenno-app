@@ -182,6 +182,12 @@ export const deleteColumn = async (columnId) => {
   return response.data;
 }
 
+// Api for Cards
+export const createCard = async (data) => {
+  const response = await api.post('/cards', data);
+  return response.data;
+}
+
 export const getCardsByColumn = async (columnId) => {
   const response = await api.get(`/cards/${columnId}`);
   return response.data;
@@ -189,6 +195,27 @@ export const getCardsByColumn = async (columnId) => {
 
 export const updateCard = async (cardId, data) => {
   const response = await api.put(`/cards/${cardId}`, data);
+  return response.data;
+}
+
+// Api for Comments
+export const getCommentsByCard = async (cardId) => {
+  const response = await api.get(`/comments/card/${cardId}`);
+  return response.data;
+}
+
+export const createComment = async (data) => {
+  const response = await api.post('/comments', data);
+  return response.data;
+}
+
+export const updateComment = async (commentId, data) => {
+  const response = await api.put(`/comments/${commentId}`, data);
+  return response.data;
+}
+
+export const deleteComment = async (commentId) => {
+  const response = await api.delete(`/comments/${commentId}`);
   return response.data;
 }
 
