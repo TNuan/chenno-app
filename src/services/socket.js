@@ -32,7 +32,7 @@ export const initSocket = () => {
     });
 
     socket.on('connect', () => {
-      console.log('Socket connected successfully:', socket.id);
+      console.log('Socket connected successfully 1:', socket.id);
       
       // Khi kết nối thành công, tham gia vào phòng của người dùng để nhận thông báo
       if (user && user.id) {
@@ -67,11 +67,18 @@ export const initSocket = () => {
   return socketInitPromise;
 };
 
-export const getSocket = () => {
+// Thay đổi hàm getSocket()
+export const getSocket = async () => {
   if (!socket) {
-    return initSocket();
+    try {
+      return await initSocket();
+    } catch (error) {
+      console.error('Error getting socket:', error);
+      return null;
+    }
   }
-  return socket;
+  
+  return socket; // Trả về socket đã được khởi tạo
 };
 
 export const joinBoard = async (boardId) => {

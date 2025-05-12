@@ -34,58 +34,74 @@ const Header = () => {
   // Khởi tạo socket và lắng nghe thông báo
   useEffect(() => {
     if (currentUser) {
-      // Khởi tạo socket nếu chưa có
-      const socket = getSocket() || initSocket();
-      
-      if (socket) {
-        // Đăng ký lắng nghe sự kiện thông báo mới
-        socket.on('new_notification', (notification) => {
-          console.log('New notification received:', notification);
+      // Sử dụng async IIFE để chờ socket khởi tạo
+      (async () => {
+        try {
+          const socketInstance = await getSocket();
           
-          // Cập nhật danh sách thông báo
-          setNotifications(prev => [notification, ...prev]);
-          
-          // Cập nhật số lượng thông báo chưa đọc
-          setUnreadCount(prev => prev + 1);
-          
-          // Hiển thị toast thông báo
-          toast.info(
-            <div>
-              <strong>{notification.sender?.username || 'Hệ thống'}</strong>: {notification.content}
-            </div>,
-            {
-              position: "top-right",
-              autoClose: 5000,
-              hideProgressBar: false,
-              closeOnClick: true,
-              pauseOnHover: true,
-              draggable: true,
-            }
-          );
-          
-          // Thêm hiệu ứng rung cho icon chuông
-          const bellIcon = document.getElementById('notification-bell');
-          if (bellIcon) {
-            bellIcon.classList.add('bell-animation');
-            setTimeout(() => {
-              bellIcon.classList.remove('bell-animation');
-            }, 1000);
-          }
-        });
+          if (socketInstance) {
+            // Đăng ký lắng nghe sự kiện thông báo mới
+            socketInstance.on('new_notification', (notification) => {
+              console.log('New notification received:', notification);
+              
+              // Cập nhật danh sách thông báo
+              setNotifications(prev => [notification, ...prev]);
+              
+              // Cập nhật số lượng thông báo chưa đọc
+              setUnreadCount(prev => prev + 1);
+              
+              // Hiển thị toast thông báo
+              toast.info(
+                <div>
+                  <strong>{notification.sender?.username || 'Hệ thống'}</strong>: {notification.content}
+                </div>,
+                {
+                  position: "top-right",
+                  autoClose: 5000,
+                  hideProgressBar: false,
+                  closeOnClick: true,
+                  pauseOnHover: true,
+                  draggable: true,
+                }
+              );
+              
+              // Thêm hiệu ứng rung cho icon chuông
+              const bellIcon = document.getElementById('notification-bell');
+              if (bellIcon) {
+                bellIcon.classList.add('bell-animation');
+                setTimeout(() => {
+                  bellIcon.classList.remove('bell-animation');
+                }, 1000);
+              }
+            });
 
-        // Lắng nghe cập nhật số lượng thông báo chưa đọc
-        socket.on('unread_count', ({ count }) => {
-          console.log('Unread notifications count:', count);
-          // Cập nhật badge hiển thị số lượng thông báo chưa đọc
-          setUnreadCount(count);
-        });
-        
-        // Cleanup function để hủy đăng ký các sự kiện socket khi component unmount
-        return () => {
-          socket.off('new_notification');
-          socket.off('unread_count');
-        };
-      }
+            // Lắng nghe cập nhật số lượng thông báo chưa đọc
+            socketInstance.on('unread_count', ({ count }) => {
+              console.log('Unread notifications count:', count);
+              // Cập nhật badge hiển thị số lượng thông báo chưa đọc
+              setUnreadCount(count);
+            });
+          }
+        } catch (error) {
+          console.error('Failed to initialize socket in Header:', error);
+        }
+      })();
+      
+      // Cleanup function cần sử dụng getSocket thay vì truy cập biến socket
+      return () => {
+        // Cách tốt hơn để clean up event listeners:
+        (async () => {
+          try {
+            const socketInstance = await getSocket();
+            if (socketInstance) {
+              socketInstance.off('new_notification');
+              socketInstance.off('unread_count');
+            }
+          } catch (error) {
+            console.error('Error during socket cleanup:', error);
+          }
+        })();
+      };
     }
   }, [currentUser]);
 
