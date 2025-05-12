@@ -181,6 +181,21 @@ const Board = () => {
               ...prevBoard,
               ...data.payload
             }));
+          } else if (data.changeType === 'card_created') {
+            console.log('New card created:', data.payload);
+            // Handle new card creation
+            setBoard(prevBoard => ({
+              ...prevBoard,
+              columns: prevBoard.columns.map(col => {
+                if (col.id === data.payload.column_id) {
+                  return {
+                    ...col,
+                    cards: [...col.cards, data.payload]
+                  };
+                }
+                return col;
+              })
+            }));
           }
         }
       });

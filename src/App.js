@@ -37,9 +37,18 @@ function App() {
 
   // Initialize socket connection when app starts
   useEffect(() => {
-    if (localStorage.getItem('accessToken')) {
-      initSocket();
-    }
+    const initializeSocket = async () => {
+      if (localStorage.getItem('accessToken')) {
+        try {
+          await initSocket();
+          console.log('Socket initialized successfully in App.js');
+        } catch (error) {
+          console.error('Failed to initialize socket in App.js:', error);
+        }
+      }
+    };
+    
+    initializeSocket();
     
     // Cleanup on app unmount
     return () => {

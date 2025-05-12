@@ -16,13 +16,17 @@ const Login = () => {
     if (handleValidation()) {
       login(values).then(data => {
         if (data.status === false) {
-          toast.error(data.msg, toastOptions)
+          toast.error(data.message, toastOptions)
         }
         if (data.status === true) {
           localStorage.setItem('user', JSON.stringify(data.user))
           localStorage.setItem('accessToken', data.accessToken)
           navigate('/h')
         }
+      })
+      .catch(err => {
+        console.log('err', err)
+        toast.error('Đã có lỗi xảy ra, vui lòng thử lại sau', toastOptions)
       })
     }
   }
