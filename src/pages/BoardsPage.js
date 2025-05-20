@@ -9,10 +9,7 @@ import {
   getSocket,
   joinBoard,
   leaveBoard,
-  initSocket,
   requestOnlineUsers,
-  startOnlineUsersPolling,
-  stopOnlineUsersPolling
 } from '../services/socket'
 import { useAlert } from '../contexts/AlertContext';
 
@@ -150,16 +147,11 @@ const Board = () => {
               columns: data.payload
             }));
           } else if (data.changeType === 'card_move') {
+            console.log('Moving card:', data.payload);
             // Handle card movement
-            const { sourceColumnId, destinationColumnId, cards } = data.payload;
+            const { sourceColumnId, destinationColumnId, newColumns } = data.payload;
             setBoard(prevBoard => {
-              const updatedColumns = prevBoard.columns.map(col => {
-                if (col.id === sourceColumnId || col.id === destinationColumnId) {
-                  return cards.find(c => c.id === col.id);
-                }
-                return col;
-              });
-              return { ...prevBoard, columns: updatedColumns };
+              return { ...prevBoard, columns: newColumns };
             });
           } else if (data.changeType === 'column_update') {
             // Handle column update (title change, etc)
@@ -328,7 +320,7 @@ const Board = () => {
         <Header />
       </div>
 
-      <div className="flex flex-col h-full pt-16"
+      <div className="flex flex-col h-full mt-16"
         style={backgroundStyle}>
         <div className="fixed top-16 left-0 right-0 z-40">
           <BoardBar
@@ -337,7 +329,7 @@ const Board = () => {
             onlineUsers={onlineUsers}
           />
         </div>
-        <div className="flex-1 mt-8 overflow-auto">
+        <div className="flex-1 mt-12">
           <BoardContent
             board={board}
             socketRef={socketRef.current}

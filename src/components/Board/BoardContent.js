@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Container, Draggable } from 'react-smooth-dnd';
+import { DragDropContext, Droppable } from 'react-beautiful-dnd';
 import { FiPlus, FiLock } from 'react-icons/fi';
 import Column from '../Column/Column';
 import { toast } from 'react-toastify';
@@ -23,7 +23,12 @@ const BoardContent = ({ board, socketRef }) => {
         try {
             // Sử dụng columns từ board prop trực tiếp
             if (board.columns) {
-                setColumns(board.columns);
+                // Make sure every column has a cards array
+                const columnsWithCards = board.columns.map(column => ({
+                    ...column,
+                    cards: column.cards || []
+                }));
+                setColumns(columnsWithCards);
             } else {
                 // Fallback nếu board.columns không tồn tại
                 setColumns([]);
@@ -35,96 +40,127 @@ const BoardContent = ({ board, socketRef }) => {
         }
     }, [board]);
 
-    // Handle column drop
-    const onColumnDrop = (dropResult) => {
+    // Xử lý drag end cho cả column và card
+    const onDragEnd = (result) => {
         if (!canModify) {
             toast.warning('Bạn không có quyền cập nhật bảng này');
             return;
         }
+        console.log('Drag result:', result);
+        const { source, destination, type } = result;
 
-        if (dropResult.removedIndex !== null && dropResult.addedIndex !== null && dropResult.removedIndex !== dropResult.addedIndex) {
+        // Dropped outside the list
+        if (!destination) {
+            return;
+        }
+
+        // Nếu không có sự thay đổi vị trí
+        if (
+            source.droppableId === destination.droppableId &&
+            source.index === destination.index
+        ) {
+            return;
+        }
+
+        // Handle column reordering
+        if (type === 'COLUMN') {
             const newColumns = [...columns];
-            const [removedColumn] = newColumns.splice(dropResult.removedIndex, 1);
-            newColumns.splice(dropResult.addedIndex, 0, removedColumn);
+            const [movedColumn] = newColumns.splice(source.index, 1);
+            newColumns.splice(destination.index, 0, movedColumn);
             
-            // Update column positions locally
+            // Update positions
             const updatedColumns = newColumns.map((column, index) => ({
                 ...column,
                 position: index
             }));
             
             setColumns(updatedColumns);
-
-            // Update only the moved column in backend
-            // Backend will handle updating positions of other columns
-            const movedColumn = updatedColumns[dropResult.addedIndex];
             
-            updateColumn(movedColumn.id, {title: movedColumn.title, position: movedColumn.position })
+            updateColumn(movedColumn.id, { position: destination.index })
                 .then(() => {
-                    // Emit column order change via socket for real-time sync
                     emitBoardChange(board.id, 'column_order', updatedColumns);
-                    
-                    // toast.success('Đã cập nhật vị trí cột');
                 })
                 .catch(err => {
                     console.error('Failed to update column position:', err);
-                    // toast.error('Không thể cập nhật vị trí cột');
-                    
-                    // Revert changes if API call fails
                     setColumns(columns);
                 });
-        }
-    };
-
-    // Handle card drop
-    const onCardDrop = (columnId, dropResult) => {
-        if (!canModify) {
-            toast.warning('Bạn không có quyền cập nhật bảng này');
+            
             return;
         }
-        console.log('Card drop result:', dropResult);
 
-        if (dropResult.removedIndex !== null || dropResult.addedIndex !== null || dropResult.payload) {
+        // Handle card reordering
+        if (type === 'CARD') {
             const newColumns = [...columns];
-            const sourceColumnIndex = newColumns.findIndex(col => col.id === columnId);
             
-            if (sourceColumnIndex !== -1) {
-                const sourceColumn = newColumns[sourceColumnIndex];
-                const [removedCard] = sourceColumn.cards.splice(dropResult.removedIndex, 1);
-                sourceColumn.cards.splice(dropResult.addedIndex, 0, removedCard);
-                
-                // Update card positions
-                sourceColumn.cards = sourceColumn.cards.map((card, index) => ({
-                    ...card,
-                    position: index
-                }));
-                
-                setColumns(newColumns);
-                
-                // Update card positions in backend
-                const updateCardPromises = sourceColumn.cards.map(card => 
-                    updateCard(card.id, { position: card.position })
-                );
-                
-                Promise.all(updateCardPromises)
-                    .then(() => {
-                        // Emit card move via socket for real-time sync
-                        emitBoardChange(board.id, 'card_move', {
-                            sourceColumnId: columnId,
-                            destinationColumnId: columnId,
-                            cards: [sourceColumn]
-                        });
-
-                        // toast.success('Đã cập nhật vị trí thẻ');
-                    })
-                    .catch(err => {
-                        console.error('Failed to update card positions:', err);
-                        // toast.error('Không thể cập nhật vị trí thẻ');
-                        
-                        // Revert changes if API call fails
-                        setColumns(columns);
-                    });
+            // Extract column IDs from droppableId correctly
+            const sourceColumnId = parseInt(source.droppableId.replace('column-', ''));
+            const destColumnId = parseInt(destination.droppableId.replace('column-', ''));
+            
+            // Find source and destination columns
+            const sourceColumnIndex = newColumns.findIndex(col => col.id === sourceColumnId);
+            const destColumnIndex = newColumns.findIndex(col => col.id === destColumnId);
+            
+            if (sourceColumnIndex === -1 || destColumnIndex === -1) {
+                console.error('Column not found:', { sourceColumnId, destColumnId });
+                return;
             }
+            
+            const sourceColumn = newColumns[sourceColumnIndex];
+            const destColumn = newColumns[destColumnIndex];
+            
+            // Use deep copy to avoid reference issues
+            const cardToMove = JSON.parse(JSON.stringify(sourceColumn.cards[source.index]));
+            
+            // Debug để theo dõi
+            console.log('Moving card:', {
+                card: cardToMove,
+                from: { column: sourceColumn.title, index: source.index },
+                to: { column: destColumn.title, index: destination.index }
+            });
+
+            // Remove from source
+            sourceColumn.cards.splice(source.index, 1);
+            
+            // Add to destination
+            destColumn.cards.splice(destination.index, 0, cardToMove);
+            
+            // Update card's column_id if it's a different column
+            if (sourceColumnId !== destColumnId) {
+                cardToMove.column_id = destColumnId;
+            }
+            
+            // Update positions for all cards in affected columns
+            sourceColumn.cards = sourceColumn.cards.map((card, idx) => ({
+                ...card,
+                position: idx
+            }));
+            
+            if (sourceColumnId !== destColumnId) {
+                destColumn.cards = destColumn.cards.map((card, idx) => ({
+                    ...card,
+                    position: idx
+                }));
+            }
+            
+            // Update state immediately for better UX
+            setColumns([...newColumns]);
+            
+            // Then update backend
+            updateCard(cardToMove.id, {
+                position: destination.index,
+                column_id: destColumnId
+            })
+            .then(() => {
+                emitBoardChange(board.id, 'card_move', {
+                    sourceColumnId: sourceColumnId,
+                    destinationColumnId: destColumnId,
+                    newColumns: newColumns
+                });
+            })
+            .catch(err => {
+                console.error('Failed to update card position:', err);
+                // Consider not reverting UI to avoid jarring experience
+            });
         }
     };
 
@@ -145,11 +181,9 @@ const BoardContent = ({ board, socketRef }) => {
             .then(() => {
                 // Emit column update via socket for real-time sync
                 emitBoardChange(board.id, 'column_update', updatedColumn);
-                
             })
             .catch(err => {
                 console.error('Failed to update column:', err);
-                // toast.error('Không thể cập nhật cột');
                 setColumns(columns);
             });
     };
@@ -238,95 +272,95 @@ const BoardContent = ({ board, socketRef }) => {
     }
 
     return (
-        <div className="flex flex-col min-h-full"
-        >
+        <div className="flex flex-col min-h-full">
             {/* Board Content - Fixed height with horizontal scroll */}
-            <div
-                className="flex-1 p-4 overflow-x-auto overflow-y-hidden"
-            >
-                <div className="inline-flex min-w-full pb-4 h-full">
-                    <Container
-                        orientation="horizontal"
-                        onDrop={onColumnDrop}
-                        dragHandleSelector={canModify ? ".column-drag-handle" : ".non-draggable"}
-                        dropPlaceholder={{
-                            animationDuration: 150,
-                            showOnTop: true,
-                            className: 'column-drop-preview'
-                        }}
-                        dragClass="column-drag-ghost"
-                        dropClass="column-drop-ghost"
-                        className="flex gap-4 h-full"
+            <div className="flex-1 overflow-x-auto overflow-y-hidden">
+                <DragDropContext onDragEnd={onDragEnd}>
+                    <Droppable 
+                        droppableId="all-columns"
+                        type="COLUMN" 
+                        direction="horizontal"
+                        isCombineEnabled={false}
+                        isDropDisabled={false}
+                        ignoreContainerClipping={false}
                     >
-                        {columns.map((column) => (
-                            <Draggable key={column.id}>
-                                <div className={canModify ? "column-drag-handle h-full" : "non-draggable h-full"}>
-                                    <Column
-                                        column={column}
-                                        onCardDrop={onCardDrop}
-                                        onUpdateColumnState={handleColumnUpdate}
-                                        onAddCard={handleAddCard}
-                                        canModify={canModify}
-                                        socketRef={socketRef}
-                                        boardId={board.id}
-                                        boardMembers={board.members}
-                                    />
-                                </div>
-                            </Draggable>
-                        ))}
-
-                        {/* Add Column Button - Only visible to members */}
-                        {canModify && (
-                            <div className="w-72 shrink-0 h-auto">
-                                {showAddColumn ? (
-                                    <div className="bg-gray-100/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg p-3 shadow-md">
-                                        <input
-                                            type="text"
-                                            value={newColumnTitle}
-                                            onChange={(e) => setNewColumnTitle(e.target.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    handleAddColumn();
-                                                } else if (e.key === 'Escape') {
-                                                    setShowAddColumn(false);
-                                                    setNewColumnTitle('');
-                                                }
-                                            }}
-                                            className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            placeholder="Nhập tên cột..."
-                                            autoFocus
+                        {(provided) => (
+                            <div 
+                                className="inline-flex min-w-full pb-4 h-full" 
+                                ref={provided.innerRef}
+                                {...provided.droppableProps}
+                            >
+                                {columns && columns.length > 0 ? (
+                                    columns.map((column, index) => (
+                                        <Column
+                                            key={`column-`+column.id || `temp-${index}`}
+                                            index={index}
+                                            column={column}
+                                            canModify={Boolean(canModify)} // Thay vì !!canModify
+                                            onUpdateColumnState={handleColumnUpdate}
+                                            onAddCard={handleAddCard}
+                                            boardMembers={board.members || []}
                                         />
-                                        <div className="flex items-center mt-2 space-x-2">
+                                    ))
+                                ) : (
+                                    <div className="text-center p-4">No columns yet</div>
+                                )}
+                                {provided.placeholder}
+                                
+                                {/* Add Column Button - Only visible to members */}
+                                {canModify && (
+                                    <div className="w-72 shrink-0 h-auto ml-4">
+                                        {showAddColumn ? (
+                                            <div className="bg-gray-100/90 dark:bg-gray-800/90 backdrop-blur-sm rounded-lg p-3 shadow-md">
+                                                <input
+                                                    type="text"
+                                                    value={newColumnTitle}
+                                                    onChange={(e) => setNewColumnTitle(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            handleAddColumn();
+                                                        } else if (e.key === 'Escape') {
+                                                            setShowAddColumn(false);
+                                                            setNewColumnTitle('');
+                                                        }
+                                                    }}
+                                                    className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                    placeholder="Nhập tên cột..."
+                                                    autoFocus
+                                                />
+                                                <div className="flex items-center mt-2 space-x-2">
+                                                    <button
+                                                        onClick={handleAddColumn}
+                                                        className="px-3 py-1.5 text-sm text-white bg-blue-500 rounded hover:bg-blue-600 transition-colors"
+                                                    >
+                                                        Add Column
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setShowAddColumn(false);
+                                                            setNewColumnTitle('');
+                                                        }}
+                                                        className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
                                             <button
-                                                onClick={handleAddColumn}
-                                                className="px-3 py-1.5 text-sm text-white bg-blue-500 rounded hover:bg-blue-600 transition-colors"
+                                                onClick={() => setShowAddColumn(true)}
+                                                className="w-full p-2.5 text-sm text-gray-600 dark:text-gray-400 bg-white/80 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center justify-center shadow-md"
                                             >
+                                                <FiPlus className="w-4 h-4 mr-1" />
                                                 Add Column
                                             </button>
-                                            <button
-                                                onClick={() => {
-                                                    setShowAddColumn(false);
-                                                    setNewColumnTitle('');
-                                                }}
-                                                className="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 transition-colors"
-                                            >
-                                                Cancel
-                                            </button>
-                                        </div>
+                                        )}
                                     </div>
-                                ) : (
-                                    <button
-                                        onClick={() => setShowAddColumn(true)}
-                                        className="w-full p-2.5 text-sm text-gray-600 dark:text-gray-400 bg-white/80 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-700 rounded-lg transition-colors flex items-center justify-center shadow-md"
-                                    >
-                                        <FiPlus className="w-4 h-4 mr-1" />
-                                        Add Column
-                                    </button>
                                 )}
                             </div>
                         )}
-                    </Container>
-                </div>
+                    </Droppable>
+                </DragDropContext>
             </div>
         </div>
     );
