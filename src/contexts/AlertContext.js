@@ -67,6 +67,30 @@ export const AlertProvider = ({ children }) => {
     });
   };
 
+  // Thêm mới: Alert xác nhận hành động
+  const showConfirm = (title, message, onConfirm, onCancel) => {
+    showAlert({
+      title: title || 'Xác nhận',
+      message,
+      type: 'warning',
+      primaryAction: () => {
+        hideAlert();
+        if (typeof onConfirm === 'function') {
+          onConfirm();
+        }
+      },
+      primaryActionText: 'Xác nhận',
+      secondaryAction: () => {
+        hideAlert();
+        if (typeof onCancel === 'function') {
+          onCancel();
+        }
+      },
+      secondaryActionText: 'Hủy bỏ',
+      showCloseButton: false, // Không hiển thị nút đóng ở góc
+    });
+  };
+
   // Sửa lại để nhận callback cho việc chuyển hướng
   const showAccessDenied = (message, onRedirect) => {
     showAlert({
@@ -93,6 +117,7 @@ export const AlertProvider = ({ children }) => {
         showSuccess,
         showWarning,
         showInfo,
+        showConfirm, // Thêm vào danh sách exports
         showAccessDenied,
       }}
     >

@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import api from '../../services/api';
 import { getSocket } from '../../services/socket';
 import { createEditableProps } from '../../utils/contentEditable';
+import { useAlert } from '../../contexts/AlertContext';
 
 // Hàm hỗ trợ để lấy tên và màu cho trạng thái
 const getStatusInfo = (status) => {
@@ -90,7 +91,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
     due_date: '',
     assigned_to: null
   });
-  
+
   const [newComment, setNewComment] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
 
@@ -101,14 +102,16 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
   const [cardTitle, setCardTitle] = useState('');
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const statusMenuRef = useRef(null);
-  
+  const { showConfirm } = useAlert();
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+
   // Fetch card details when opened
   useEffect(() => {
     if (isOpen && card?.id) {
       fetchCardDetails(card.id);
     }
   }, [isOpen, card]);
-  
+
   // Auto-adjust textarea height
   useEffect(() => {
     if (textareaRef.current) {
@@ -116,23 +119,23 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
       textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [editFields.description]);
-  
+
   // Click outside to close
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (modalRef.current && !modalRef.current.contains(event.target)) {
+      if (!isConfirmOpen && modalRef.current && !modalRef.current.contains(event.target)) {
         handleClose();
       }
     };
-    
+
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
-    
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen]);
+  }, [isOpen, isConfirmOpen]);
 
   // Update cardTitle when cardData changes
   useEffect(() => {
@@ -148,13 +151,13 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
         setIsStatusMenuOpen(false);
       }
     };
-    
+
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-  
+
   // Escape key to close
   useEffect(() => {
     const handleEscKey = (event) => {
@@ -162,22 +165,22 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
         handleClose();
       }
     };
-    
+
     if (isOpen) {
       document.addEventListener('keydown', handleEscKey);
     }
-    
+
     return () => {
       document.removeEventListener('keydown', handleEscKey);
     };
   }, [isOpen]);
-  
+
   const fetchCardDetails = async (cardId) => {
     setLoading(true);
     try {
       const response = await api.get(`/cards/details/${cardId}`);
       setCardData(response.data.card);
-      
+
       // Initialize edit fields with current values
       setEditFields({
         title: response.data.card.title,
@@ -194,7 +197,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
       setLoading(false);
     }
   };
-  
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setEditFields((prev) => ({
@@ -202,49 +205,49 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
       [name]: value
     }));
   };
-  
+
   const handleStatusChange = (status) => {
     setEditFields((prev) => ({
       ...prev,
       status
     }));
   };
-  
+
   const handlePriorityChange = (priority) => {
     setEditFields((prev) => ({
       ...prev,
       priority_level: parseInt(priority, 10)
     }));
   };
-  
+
   const handleDifficultyChange = (difficulty) => {
     setEditFields((prev) => ({
       ...prev,
       difficulty_level: parseInt(difficulty, 10)
     }));
   };
-  
+
   const handleAssigneeChange = (userId) => {
     setEditFields((prev) => ({
       ...prev,
       assigned_to: userId === 'none' ? null : parseInt(userId, 10)
     }));
   };
-  
+
   const handleCommentChange = (e) => {
     setNewComment(e.target.value);
   };
 
   const handleCommentSubmit = async () => {
     if (!newComment.trim()) return;
-    
+
     setCommentLoading(true);
     try {
       const response = await api.post('/comments', {
         card_id: card.id,
         content: newComment.trim()
       });
-      
+
       // Cập nhật cardData với comment mới
       setCardData(prevData => ({
         ...prevData,
@@ -253,10 +256,10 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
           response.data.comment
         ]
       }));
-      
+
       // Clear the input
       setNewComment('');
-      
+
       // Emit socket event for real-time updates
       const socket = await getSocket();
       if (socket) {
@@ -296,17 +299,17 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
         due_date: editFields.due_date ? new Date(editFields.due_date).toISOString() : null,
         assigned_to: editFields.assigned_to
       };
-      
+
       const response = await api.put(`/cards/${card.id}`, updatedCard);
-      
+
       // Update local state
       setCardData(response.data.card);
-      
+
       // Notify parent component
       if (onUpdate) {
         onUpdate(response.data.card);
       }
-      
+
       // Emit socket event for real-time updates
       const socket = getSocket();
       if (socket) {
@@ -316,7 +319,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
           data: response.data.card
         });
       }
-      
+
       setEditMode(false);
     } catch (error) {
       console.error('Failed to update card', error);
@@ -324,37 +327,37 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
       setLoading(false);
     }
   };
-  
+
   const handleDelete = async () => {
-    if (window.confirm('Are you sure you want to delete this card? This action cannot be undone.')) {
-      setLoading(true);
-      try {
-        await api.delete(`/cards/${card.id}`);
-        
-        // Notify parent component
-        if (onUpdate) {
-          onUpdate(null, true); // Pass true to indicate deletion
+    setIsConfirmOpen(true);
+    
+    showConfirm(
+      'Xóa thẻ',
+      'Bạn có chắc chắn muốn xóa thẻ này? Mọi nội dung, tệp đính kèm và bình luận sẽ bị xóa vĩnh viễn.',
+      async () => {
+        setLoading(true);
+        try {
+          await api.delete(`/cards/${card.id}`);
+
+          // Notify parent component
+          if (onUpdate) {
+            onUpdate(null, true); // Pass true to indicate deletion
+          }
+          
+          onClose();
+        } catch (error) {
+          console.error('Failed to delete card', error);
+        } finally {
+          setLoading(false);
+          setIsConfirmOpen(false);
         }
-        
-        // Emit socket event for real-time updates
-        const socket = getSocket();
-        if (socket) {
-          socket.emit('board_change', {
-            type: 'card_deleted',
-            boardId: cardData.board_id,
-            data: { id: card.id, column_id: card.column_id }
-          });
-        }
-        
-        handleClose();
-      } catch (error) {
-        console.error('Failed to delete card', error);
-      } finally {
-        setLoading(false);
+      },
+      () => {
+        setIsConfirmOpen(false);
       }
-    }
+    );
   };
-  
+
   const handleClose = () => {
     if (editMode) {
       if (window.confirm('You have unsaved changes. Are you sure you want to close?')) {
@@ -383,17 +386,17 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
         ...cardData,
         title: cardTitle.trim()
       };
-      
+
       const response = await api.put(`/cards/${card.id}`, updatedCard);
-      
+
       // Update local state
       setCardData(response.data.card);
-      
+
       // Notify parent component
       if (onUpdate) {
         onUpdate(response.data.card);
       }
-      
+
       // Emit socket event for real-time updates
       const socket = getSocket();
       if (socket) {
@@ -429,12 +432,12 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
         ...cardData,
         status
       };
-      
+
       const response = await api.put(`/cards/${card.id}`, updatedCard);
-      
+
       // Update local state
       setCardData(response.data.card);
-      
+
       // Cập nhật editFields nếu đang trong edit mode
       if (editMode) {
         setEditFields(prev => ({
@@ -442,12 +445,12 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
           status
         }));
       }
-      
+
       // Notify parent component
       if (onUpdate) {
         onUpdate(response.data.card);
       }
-      
+
       // Emit socket event for real-time updates
       const socket = getSocket();
       if (socket) {
@@ -471,22 +474,22 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
     handleCardTitleSubmit,
     handleCardTitleCancel
   );
-  
+
   if (!isOpen || !card) return null;
-  
+
   const statusInfo = getStatusInfo(cardData?.status || 'todo');
   const priorityInfo = getPriorityInfo(cardData?.priority_level || 0);
   const difficultyInfo = getDifficultyInfo(cardData?.difficulty_level || 0);
-  
+
   return (
-    <div 
+    <div
       className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onMouseDown={(e) => {
         // Ngăn chặn event bubbling lên các phần tử cha
         e.stopPropagation();
       }}
     >
-      <div 
+      <div
         ref={modalRef}
         className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col"
         onMouseDown={(e) => {
@@ -515,11 +518,10 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                       key={option.value}
                       type="button"
                       onClick={() => handleStatusChangeFromHeader(option.value)}
-                      className={`w-full text-left px-3 py-1.5 text-sm flex items-center ${
-                        cardData?.status === option.value
-                          ? 'bg-gray-100 dark:bg-gray-700'
-                          : 'hover:bg-gray-50 dark:hover:bg-gray-700'
-                      }`}
+                      className={`w-full text-left px-3 py-1.5 text-sm flex items-center ${cardData?.status === option.value
+                        ? 'bg-gray-100 dark:bg-gray-700'
+                        : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }`}
                     >
                       <span className={`w-2 h-2 rounded-full mr-2 ${getStatusInfo(option.value).color}`}></span>
                       {option.label}
@@ -531,7 +533,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
 
             {/* Card Title with Inline Edit */}
             {isEditingTitle && canModify ? (
-              <input 
+              <input
                 {...editableProps}
                 className="flex-1 px-2 py-1 text-base font-medium text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -552,7 +554,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
             <FiX className="w-5 h-5 text-gray-500 dark:text-gray-400" />
           </button>
         </div>
-        
+
         {loading && !cardData ? (
           <div className="flex-1 flex items-center justify-center p-8">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -579,7 +581,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                         placeholder="Card title"
                       />
                     </div>
-                    
+
                     {/* Description textarea */}
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -595,7 +597,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                         rows={4}
                       />
                     </div>
-                    
+
                     {/* Status selection */}
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -607,11 +609,10 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                             key={option.value}
                             type="button"
                             onClick={() => handleStatusChange(option.value)}
-                            className={`px-3 py-1.5 rounded-md text-sm ${
-                              editFields.status === option.value
-                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-2 border-blue-500'
-                                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'
-                            }`}
+                            className={`px-3 py-1.5 rounded-md text-sm ${editFields.status === option.value
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-2 border-blue-500'
+                              : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'
+                              }`}
                           >
                             {option.label}
                           </button>
@@ -625,7 +626,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                     <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
                       {cardData?.title}
                     </h1>
-                    
+
                     {/* Description */}
                     <div className="mb-6 dark:bg-gray-800 rounded-md">
                       <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
@@ -637,13 +638,13 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                     </div>
                   </>
                 )}
-                
+
                 {/* Comments section - visible in both modes */}
                 <div className="mt-6 flex flex-col">
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
                     <FiMessageSquare className="mr-1" /> Comments
                   </h3>
-                  
+
                   {/* Comment container với scroll riêng và thiết kế nhỏ gọn hơn */}
                   <div className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 rounded-md overflow-hidden flex flex-col">
                     <div className="overflow-y-auto max-h-[200px] flex-1 bg-gray-50 dark:bg-gray-800">
@@ -653,8 +654,8 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                             <div key={comment.id} className="p-2 bg-white dark:bg-gray-700 rounded-md shadow-sm text-xs">
                               <div className="flex items-center mb-1">
                                 <div className="w-5 h-5 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-200 text-xs font-bold mr-1.5">
-                                  {comment.user?.username ? comment.user.username.charAt(0).toUpperCase() : 
-                                   comment.username ? comment.username.charAt(0).toUpperCase() : 'U'}
+                                  {comment.user?.username ? comment.user.username.charAt(0).toUpperCase() :
+                                    comment.username ? comment.username.charAt(0).toUpperCase() : 'U'}
                                 </div>
                                 <span className="font-medium text-gray-900 dark:text-gray-100 text-xs">
                                   {comment.user?.username || comment.username || 'User'}
@@ -675,7 +676,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                         </div>
                       )}
                     </div>
-                    
+
                     {/* Add comment input - nhỏ gọn hơn */}
                     <div className="p-2 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                       <textarea
@@ -688,7 +689,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                         disabled={commentLoading}
                       />
                       <div className="mt-1 text-right">
-                        <button 
+                        <button
                           className="px-2 py-1 bg-blue-600 text-white rounded-md text-xs hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           onClick={handleCommentSubmit}
                           disabled={!newComment.trim() || commentLoading}
@@ -708,7 +709,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                   </div>
                 </div>
               </div>
-              
+
               {/* Sidebar (metadata, actions) */}
               <div className="w-full md:w-72 p-4 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700 overflow-y-auto">
                 {editMode ? (
@@ -726,7 +727,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                         className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       />
                     </div>
-                    
+
                     {/* Assignee selection */}
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -745,7 +746,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                         ))}
                       </select>
                     </div>
-                    
+
                     {/* Priority selection */}
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -757,18 +758,17 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                             key={option.value}
                             type="button"
                             onClick={() => handlePriorityChange(option.value)}
-                            className={`px-3 py-1.5 rounded-md text-sm ${
-                              editFields.priority_level === option.value
-                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-2 border-blue-500'
-                                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'
-                            }`}
+                            className={`px-3 py-1.5 rounded-md text-sm ${editFields.priority_level === option.value
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-2 border-blue-500'
+                              : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'
+                              }`}
                           >
                             {option.label}
                           </button>
                         ))}
                       </div>
                     </div>
-                    
+
                     {/* Difficulty selection */}
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -780,11 +780,10 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                             key={option.value}
                             type="button"
                             onClick={() => handleDifficultyChange(option.value)}
-                            className={`px-3 py-1.5 rounded-md text-sm ${
-                              editFields.difficulty_level === option.value
-                                ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-2 border-blue-500'
-                                : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'
-                            }`}
+                            className={`px-3 py-1.5 rounded-md text-sm ${editFields.difficulty_level === option.value
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-2 border-blue-500'
+                              : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'
+                              }`}
                           >
                             {option.label}
                           </button>
@@ -803,7 +802,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                           {statusInfo.name}
                         </div>
                       </div>
-                      
+
                       {/* Assignee */}
                       <div>
                         <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Assignee</h4>
@@ -820,7 +819,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                           <span className="text-sm text-gray-500 dark:text-gray-400">Unassigned</span>
                         )}
                       </div>
-                      
+
                       {/* Due Date */}
                       <div>
                         <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Due Date</h4>
@@ -835,7 +834,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                           <span className="text-sm text-gray-500 dark:text-gray-400">None</span>
                         )}
                       </div>
-                      
+
                       {/* Priority */}
                       <div>
                         <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Priority</h4>
@@ -843,7 +842,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                           {priorityInfo.name}
                         </div>
                       </div>
-                      
+
                       {/* Difficulty */}
                       <div>
                         <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Difficulty</h4>
@@ -851,7 +850,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                           {difficultyInfo.name}
                         </div>
                       </div>
-                      
+
                       {/* Created Info */}
                       <div>
                         <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Created</h4>
@@ -864,7 +863,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                           )}
                         </div>
                       </div>
-                      
+
                       {/* Attachments - simplified */}
                       {cardData?.attachments && cardData.attachments.length > 0 && (
                         <div>
@@ -878,7 +877,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                           </div>
                         </div>
                       )}
-                      
+
                       {/* Labels */}
                       {cardData?.labels && cardData.labels.length > 0 && (
                         <div>
@@ -903,7 +902,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                 )}
               </div>
             </div>
-            
+
             {/* Footer action buttons */}
             <div className="border-t border-gray-200 dark:border-gray-700 p-4 flex justify-between">
               {editMode ? (
