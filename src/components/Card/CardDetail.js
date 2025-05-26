@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FiX, FiUser, FiClock, FiTag, FiPaperclip, FiMessageSquare, FiAlertCircle, FiCheck, FiChevronDown } from 'react-icons/fi';
 import { format } from 'date-fns';
 import api from '../../services/api';
-import { getSocket } from '../../services/socket';
 import { createEditableProps } from '../../utils/contentEditable';
 import { useAlert } from '../../contexts/AlertContext';
+import { emitBoardChange } from '../../services/socket';
 
 // Hàm hỗ trợ để lấy tên và màu cho trạng thái
 const getStatusInfo = (status) => {
@@ -78,7 +78,7 @@ const difficultyOptions = [
   { value: 3, label: 'Hard' }
 ];
 
-const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canModify }) => {
+const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canModify, socketRef }) => {
   const [loading, setLoading] = useState(false);
   const [cardData, setCardData] = useState(null);
   const [editMode, setEditMode] = useState(false);
@@ -175,6 +175,36 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
     };
   }, [isOpen]);
 
+  // Lắng nghe các sự kiện socket khi CardDetail được mở
+  useEffect(() => {
+    if (isOpen && card?.id && cardData?.board_id && socketRef) {
+      // Lắng nghe khi có comment mới được thêm vào card này
+      socketRef.on('board_updated', (data) => {
+        if (data.changeType === 'comment_added' && data.payload?.card_id === card.id) {
+          setCardData(prevData => {
+            if (!prevData) return prevData;
+            
+            return {
+              ...prevData,
+              comments: [
+                ...(prevData.comments || []),
+                data.payload.comment
+              ]
+            };
+          });
+        }
+      });
+
+      // Cleanup function
+      return () => {
+        if (socketRef) {
+          socketRef.off('board_updated');
+          console.log(`Stopped listening for comments on card ${card.id}`);
+        }
+      };
+    }
+  }, [isOpen, card?.id, cardData?.board_id, socketRef]);
+
   const fetchCardDetails = async (cardId) => {
     setLoading(true);
     try {
@@ -260,18 +290,6 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
       // Clear the input
       setNewComment('');
 
-      // Emit socket event for real-time updates
-      const socket = await getSocket();
-      if (socket) {
-        socket.emit('board_change', {
-          type: 'comment_added',
-          boardId: cardData.board_id,
-          data: {
-            card_id: card.id,
-            comment: response.data.comment
-          }
-        });
-      }
     } catch (error) {
       console.error('Failed to add comment', error);
     } finally {
@@ -311,13 +329,8 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
       }
 
       // Emit socket event for real-time updates
-      const socket = getSocket();
-      if (socket) {
-        socket.emit('board_change', {
-          type: 'card_updated',
-          boardId: cardData.board_id,
-          data: response.data.card
-        });
+      if (cardData && cardData.board_id) {
+        emitBoardChange(cardData.board_id, 'card_updated', response.data.card);
       }
 
       setEditMode(false);
@@ -398,13 +411,8 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
       }
 
       // Emit socket event for real-time updates
-      const socket = getSocket();
-      if (socket) {
-        socket.emit('board_change', {
-          type: 'card_updated',
-          boardId: cardData.board_id,
-          data: response.data.card
-        });
+      if (cardData && cardData.board_id) {
+        emitBoardChange(cardData.board_id, 'card_updated', response.data.card);
       }
     } catch (error) {
       console.error('Failed to update card title', error);
@@ -452,14 +460,14 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
       }
 
       // Emit socket event for real-time updates
-      const socket = getSocket();
-      if (socket) {
-        socket.emit('board_change', {
-          type: 'card_updated',
-          boardId: cardData.board_id,
-          data: response.data.card
-        });
-      }
+      // const socket = getSocket();
+      // if (socket) {
+      //   socket.emit('board_change', {
+      //     type: 'card_updated',
+      //     boardId: cardData.board_id,
+      //     data: response.data.card
+      //   });
+      // }
     } catch (error) {
       console.error('Failed to update card status', error);
     } finally {

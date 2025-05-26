@@ -9,7 +9,7 @@ import api, { createCard, deleteColumn } from '../../services/api'
 import { useAlert } from '../../contexts/AlertContext' // Thêm import này
 import { toast } from 'react-toastify' // Nếu bạn đang sử dụng toast để thông báo
 
-const Column = ({ column, index, onUpdateColumnState, onAddCard, onDeleteColumn, canModify = true, boardMembers = [] }) => {
+const Column = ({ column, index, onUpdateColumnState, onAddCard, onDeleteColumn, canModify = true, boardMembers = [], socketRef}) => {
   const [isEditing, setIsEditing] = useState(false)
   const [columnTitle, setColumnTitle] = useState(column?.title || '')
   const [showMenu, setShowMenu] = useState(false)
@@ -361,6 +361,7 @@ const Column = ({ column, index, onUpdateColumnState, onAddCard, onDeleteColumn,
               onUpdate={handleCardUpdate}
               boardMembers={boardMembersList}
               canModify={canModifyBoolean}
+              socketRef={socketRef}
             />
           )}
         </div>

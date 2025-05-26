@@ -301,6 +301,7 @@ const BoardContent = ({ board, socketRef }) => {
                                             onAddCard={handleAddCard}
                                             onDeleteColumn={handleDeleteColumn}
                                             boardMembers={board.members || []}
+                                            socketRef={socketRef}
                                         />
                                     ))
                                 ) : (
