@@ -594,78 +594,133 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
   const priorityInfo = getPriorityInfo(cardData?.priority_level || 0);
   const difficultyInfo = getDifficultyInfo(cardData?.difficulty_level || 0);
 
+  // Thêm vào đầu component
+  const isImageCover = cardData?.cover_img && !cardData.cover_img.startsWith('#');
+  const isColorCover = cardData?.cover_img && cardData.cover_img.startsWith('#');
+
   return (
     <div
       className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
       onMouseDown={(e) => {
-        // Ngăn chặn event bubbling lên các phần tử cha
         e.stopPropagation();
       }}
     >
       <div
         ref={modalRef}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col"
+        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
         onMouseDown={(e) => {
-          // Ngăn chặn event bubbling và đảm bảo sự kiện không truyền ra ngoài modal
           e.stopPropagation();
         }}
       >
-        {/* Header */}
-        <div className="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 p-4">
-          <div className="flex items-center flex-1">
-            {/* Status Badge với Dropdown */}
-            <div className="relative mr-2" ref={statusMenuRef}>
-              <button
-                onClick={() => canModify && setIsStatusMenuOpen(!isStatusMenuOpen)}
-                className={`h-6 px-2.5 py-0.5 text-xs text-white rounded flex items-center ${statusInfo.color} ${canModify ? 'hover:brightness-110 cursor-pointer' : 'cursor-default'}`}
-                disabled={!canModify || loading}
-              >
-                {statusInfo.name}
-                {canModify && <FiChevronDown className="ml-1 w-3 h-3" />}
-              </button>
+        {/* Header với Cover Background */}
+        <div 
+          className={`relative border-b border-gray-200 dark:border-gray-700 transition-all duration-300 ${
+            isImageCover 
+              ? 'min-h-[150px] md:min-h-[150px]' // Chiều cao lớn cho ảnh
+              : 'min-h-[64px]' // Chiều cao bình thường
+          }`}
+          style={{
+            backgroundImage: isImageCover ? `url(${cardData.cover_img})` : 'none',
+            backgroundColor: isColorCover ? cardData.cover_img : 'transparent',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat'
+          }}
+        >
+          {/* Smart overlay dựa trên loại cover */}
+          {isImageCover && (
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-black/10" />
+          )}
+          {isColorCover && (
+            <div className="absolute inset-0 bg-black/20" />
+          )}
+          
+          {/* Tất cả các phần tử trên một dòng */}
+          <div className={`relative h-full flex items-${isImageCover ? 'end' : 'center'} p-4`}>
+            <div className="w-full flex items-center justify-between">
+              {/* Bên trái: Status + Title */}
+              <div className="flex items-center flex-1 mr-2">
+                {/* Status Badge với Dropdown */}
+                <div className="relative mr-2 flex-shrink-0" ref={statusMenuRef}>
+                  <button
+                    onClick={() => canModify && setIsStatusMenuOpen(!isStatusMenuOpen)}
+                    className={`h-6 px-2.5 py-0.5 text-xs text-white rounded flex items-center ${statusInfo.color} ${canModify ? 'hover:brightness-110 cursor-pointer' : 'cursor-default'} shadow-sm`}
+                    disabled={!canModify || loading}
+                  >
+                    {statusInfo.name}
+                    {canModify && <FiChevronDown className="ml-1 w-3 h-3" />}
+                  </button>
 
-              {isStatusMenuOpen && canModify && (
-                <div className="absolute left-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20">
-                  {statusOptions.map(option => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => handleStatusChangeFromHeader(option.value)}
-                      className={`w-full text-left px-3 py-1.5 text-sm flex items-center ${cardData?.status === option.value
-                        ? 'bg-gray-100 dark:bg-gray-700'
-                        : 'hover:bg-gray-50 dark:hover:bg-gray-700'
-                        }`}
-                    >
-                      <span className={`w-2 h-2 rounded-full mr-2 ${getStatusInfo(option.value).color}`}></span>
-                      {option.label}
-                    </button>
-                  ))}
+                  {isStatusMenuOpen && canModify && (
+                    <div className="absolute left-0 mt-1 w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-20">
+                      {statusOptions.map(option => (
+                        <button
+                          key={option.value}
+                          type="button"
+                          onClick={() => handleStatusChangeFromHeader(option.value)}
+                          className={`w-full text-left px-3 py-1.5 text-sm flex items-center ${cardData?.status === option.value
+                            ? 'bg-gray-100 dark:bg-gray-700'
+                            : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                            }`}
+                        >
+                          <span className={`w-2 h-2 rounded-full mr-2 ${getStatusInfo(option.value).color}`}></span>
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
 
-            {/* Card Title với Inline Edit */}
-            {isEditingTitle && canModify ? (
-              <input
-                {...editableProps}
-                className="flex-1 px-2 py-1 text-base font-medium text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            ) : (
-              <h2
-                className={`text-lg font-medium text-gray-800 dark:text-gray-200 px-2 py-1 flex-1 ${canModify ? 'cursor-pointer rounded hover:bg-gray-100 dark:hover:bg-gray-700' : ''}`}
-                onClick={() => canModify && setIsEditingTitle(true)}
-                title={canModify ? "Click to edit card title" : ""}
-              >
-                {loading && !cardData ? 'Loading...' : cardData?.title || card.title}
-              </h2>
-            )}
+                {/* Card Title với Inline Edit */}
+                {isEditingTitle && canModify ? (
+                  <input
+                    {...editableProps}
+                    className="flex-1 min-w-0 px-2 py-1 text-base font-medium text-gray-900 dark:text-gray-100 bg-white/90 dark:bg-gray-700/90 rounded border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+                  />
+                ) : (
+                  <h2
+                    className={`text-lg font-medium px-2 py-1 flex-1 truncate rounded transition-colors ${canModify ? 'cursor-pointer hover:bg-white/20 dark:hover:bg-black/20' : ''} ${
+                      cardData?.cover_img ? 'text-white drop-shadow-lg' : 'text-gray-800 dark:text-gray-200'
+                    }`}
+                    onClick={() => canModify && setIsEditingTitle(true)}
+                    title={cardData?.title || card.title}
+                  >
+                    {loading && !cardData ? 'Loading...' : cardData?.title || card.title}
+                  </h2>
+                )}
+              </div>
+              
+              {/* Bên phải: Action buttons */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {/* Add/Change Cover Button */}
+                {canModify && (
+                  <button
+                    onClick={() => setShowCoverPicker(true)}
+                    className={`p-1.5 rounded-full transition-colors ${
+                      cardData?.cover_img 
+                        ? 'bg-black/30 hover:bg-black/50 text-white' 
+                        : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400'
+                    }`}
+                    title={cardData?.cover_img ? "Change cover" : "Add cover"}
+                  >
+                    <FiImage className="w-4 h-4" />
+                  </button>
+                )}
+                
+                {/* Close Button */}
+                <button
+                  onClick={handleClose}
+                  className={`p-1.5 rounded-full transition-colors ${
+                    cardData?.cover_img 
+                      ? 'bg-black/30 hover:bg-black/50 text-white' 
+                      : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400'
+                  }`}
+                >
+                  <FiX className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
-          <button
-            onClick={handleClose}
-            className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-          >
-            <FiX className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-          </button>
         </div>
 
         {loading && !cardData ? (
@@ -678,9 +733,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
             <div className="flex-1 flex flex-col md:flex-row overflow-auto">
               {/* Main content panel */}
               <div className="flex-1 p-4 overflow-y-auto">
-                {/* Cover Image Section - Thêm phần này */}
-                {renderModalCoverImage()}
-                {renderAddCoverButton()}
+
 
                 {editMode ? (
                   <>
@@ -924,22 +977,6 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                   </>
                 ) : (
                   <>
-                    {/* Actions Section - Thêm phần này vào đầu sidebar */}
-                    {canModify && (
-                      <div className="mb-6">
-                        <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-2">Actions</h4>
-                        <div className="space-y-2">
-                          <button
-                            onClick={() => setShowCoverPicker(true)}
-                            className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center"
-                          >
-                            <FiImage className="w-4 h-4 mr-2" />
-                            {cardData?.cover_image ? 'Change Cover' : 'Add Cover'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
                     {/* Metadata display - giữ nguyên các phần hiện có */}
                     <div className="space-y-4">
                       {/* Status */}
