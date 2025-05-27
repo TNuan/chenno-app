@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiX, FiUser, FiClock, FiTag, FiPaperclip, FiMessageSquare, FiAlertCircle, FiCheck, FiChevronDown, FiImage } from 'react-icons/fi';
+import { FiX, FiUser, FiClock, FiTag, FiPaperclip, FiMessageSquare, FiAlertCircle, FiCheck, FiChevronDown, FiImage, FiUpload, FiDownload, FiTrash2, FiFile } from 'react-icons/fi';
 import { format } from 'date-fns';
-import api from '../../services/api';
+import api, { uploadAttachment, getCardAttachments, deleteAttachment, downloadAttachment } from '../../services/api';
 import { createEditableProps } from '../../utils/contentEditable';
 import { useAlert } from '../../contexts/AlertContext';
 import { emitBoardChange } from '../../services/socket';
 import CoverImagePicker from './CoverImagePicker';
+import AttachmentUploadModal from './AttachmentUploadModal';
 
 // Hàm hỗ trợ để lấy tên và màu cho trạng thái
 const getStatusInfo = (status) => {
@@ -96,9 +97,13 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
   const [newComment, setNewComment] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
   const [showCoverPicker, setShowCoverPicker] = useState(false);
+  const [attachments, setAttachments] = useState([]);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [showAttachmentUpload, setShowAttachmentUpload] = useState(false);
 
   const modalRef = useRef(null);
   const textareaRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [cardTitle, setCardTitle] = useState('');
@@ -182,6 +187,8 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
     if (isOpen && card?.id && cardData?.board_id && socketRef) {
       // Lắng nghe khi có comment mới được thêm vào card này
       socketRef.on('board_updated', (data) => {
+        console.log('Received board update:', data);
+        
         if (data.changeType === 'comment_added' && data.payload?.card_id === card.id) {
           setCardData(prevData => {
             if (!prevData) return prevData;
@@ -194,14 +201,48 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
               ]
             };
           });
+        } 
+        else if (data.changeType === 'attachment_added' && data.payload?.card_id === card.id) {
+          console.log(`New attachment added to card ${card.id}:`, data.payload.attachment);
+          
+          // Cập nhật cả cardData và attachments state
+          setCardData(prevData => {
+            if (!prevData) return prevData;
+            
+            return {
+              ...prevData,
+              attachments: [
+                ...(prevData.attachments || []),
+                data.payload.attachment
+              ]
+            };
+          });
+          
+          // Quan trọng: Thêm attachment mới vào state attachments riêng biệt
+          setAttachments(prev => [data.payload.attachment, ...prev]);
+        }
+        else if (data.changeType === 'attachment_removed' && data.payload?.card_id === card.id) {
+          const removedAttachmentId = data.payload.attachment_id;
+          
+          // Xóa khỏi cả cardData và attachments state
+          setCardData(prevData => {
+            if (!prevData || !prevData.attachments) return prevData;
+            
+            return {
+              ...prevData,
+              attachments: prevData.attachments.filter(att => att.id !== removedAttachmentId)
+            };
+          });
+          
+          // Xóa khỏi attachments state
+          setAttachments(prev => prev.filter(att => att.id !== removedAttachmentId));
         }
       });
-
-      // Cleanup function
+  
+      // Clean up
       return () => {
         if (socketRef) {
           socketRef.off('board_updated');
-          console.log(`Stopped listening for comments on card ${card.id}`);
         }
       };
     }
@@ -212,6 +253,15 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
     try {
       const response = await api.get(`/cards/details/${cardId}`);
       setCardData(response.data.card);
+
+      // Fetch attachments
+      try {
+        const attachmentResponse = await getCardAttachments(cardId);
+        setAttachments(attachmentResponse.attachments || []);
+      } catch (attachmentError) {
+        console.error('Failed to fetch attachments:', attachmentError);
+        setAttachments([]);
+      }
 
       // Initialize edit fields with current values
       setEditFields({
@@ -588,6 +638,101 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
     handleCardTitleCancel
   );
 
+  // Tạo một hàm riêng để xử lý file để tái sử dụng giữa drop và click
+  const processFileUpload = (file) => {
+    if (!file || !canModify) return;
+
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('File size must be less than 10MB');
+      return;
+    }
+
+    setUploadingAttachment(true);
+    uploadAttachment(card.id, file)
+      .then(response => {
+        // Add new attachment to list
+        setAttachments(prev => [response.attachment, ...prev]);
+        
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        
+        setShowAttachmentUpload(false);
+      })
+      .catch(error => {
+        console.error('Failed to upload attachment:', error);
+        alert('Failed to upload file. Please try again.');
+      })
+      .finally(() => {
+        setUploadingAttachment(false);
+      });
+  };
+
+  // Cập nhật handleFileUpload để sử dụng hàm processFileUpload
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    processFileUpload(file);
+  };
+
+  // Handler để xóa attachment
+  const handleDeleteAttachment = async (attachmentId, fileName) => {
+    if (!canModify) return;
+    
+    if (!window.confirm(`Are you sure you want to delete "${fileName}"?`)) {
+      return;
+    }
+
+    try {
+      await deleteAttachment(attachmentId);
+      
+      // Remove from local state
+      setAttachments(prev => prev.filter(att => att.id !== attachmentId));
+      
+      // Cập nhật cardData nếu có
+      setCardData(prevData => {
+        if (!prevData || !prevData.attachments) return prevData;
+        
+        return {
+          ...prevData,
+          attachments: prevData.attachments.filter(att => att.id !== attachmentId)
+        };
+      });
+      
+    } catch (error) {
+      console.error('Failed to delete attachment:', error);
+      alert('Failed to delete attachment. Please try again.');
+    }
+  };
+
+  // Handler để download attachment
+  const handleDownloadAttachment = (attachmentId, fileName) => {
+    downloadAttachment(attachmentId, fileName);
+  };
+
+  // Helper function để format file size
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  };
+
+  // Helper function để get file icon
+  const getFileIcon = (fileType) => {
+    if (fileType?.startsWith('image/')) return '🖼️';
+    if (fileType?.includes('pdf')) return '📄';
+    if (fileType?.includes('word')) return '📝';
+    if (fileType?.includes('excel') || fileType?.includes('sheet')) return '📊';
+    if (fileType?.includes('powerpoint') || fileType?.includes('presentation')) return '📈';
+    if (fileType?.includes('zip') || fileType?.includes('rar')) return '🗜️';
+    if (fileType?.includes('video/')) return '🎥';
+    if (fileType?.includes('audio/')) return '🎵';
+    return '📄';
+  };
+
   if (!isOpen || !card) return null;
 
   const statusInfo = getStatusInfo(cardData?.status || 'todo');
@@ -789,6 +934,69 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                         ))}
                       </div>
                     </div>
+
+                    {/* Priority selection */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Priority
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {priorityOptions.map(option => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => handlePriorityChange(option.value)}
+                            className={`px-3 py-1.5 rounded-md text-sm ${editFields.priority_level === option.value
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-2 border-blue-500'
+                              : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'
+                              }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Difficulty selection */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Difficulty
+                      </label>
+                      <div className="flex flex-wrap gap-2">
+                        {difficultyOptions.map(option => (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => handleDifficultyChange(option.value)}
+                            className={`px-3 py-1.5 rounded-md text-sm ${editFields.difficulty_level === option.value
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-2 border-blue-500'
+                              : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'
+                              }`}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Assignee selection */}
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Assignee
+                      </label>
+                      <select
+                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        value={editFields.assigned_to || 'none'}
+                        onChange={(e) => handleAssigneeChange(e.target.value)}
+                      >
+                        <option value="none">None</option>
+                        {boardMembers.map(member => (
+                          <option key={member.id} value={member.id}>
+                            {member.username || member.email}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </>
                 ) : (
                   <>
@@ -876,6 +1084,53 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                     </div>
                   </div>
                 </div>
+
+                {/* Attachments section */}
+                {(!editMode && attachments.length > 0) && (
+                  <div className="mt-6 flex flex-col">
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
+                      <FiPaperclip className="mr-1" /> Attachments ({attachments.length})
+                    </h3>
+
+                    <div className="space-y-2">
+                      {attachments.map(attachment => (
+                        <div key={attachment.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-md">
+                          <div className="flex items-center flex-1 min-w-0">
+                            <span className="text-lg mr-2">{getFileIcon(attachment.file_type)}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                                {attachment.file_name}
+                              </p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">
+                                {formatFileSize(attachment.file_size)} • {format(new Date(attachment.created_at), 'MMM d, yyyy')}
+                                {attachment.uploaded_by_username && ` • by ${attachment.uploaded_by_username}`}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={() => handleDownloadAttachment(attachment.id, attachment.file_name)}
+                              className="p-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
+                              title="Download"
+                            >
+                              <FiDownload className="w-4 h-4" />
+                            </button>
+                            {canModify && (
+                              <button
+                                onClick={() => handleDeleteAttachment(attachment.id, attachment.file_name)}
+                                className="p-1 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
+                                title="Delete"
+                              >
+                                <FiTrash2 className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Right Sidebar */}
@@ -1048,19 +1303,64 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                         </div>
                       </div>
 
-                      {/* Attachments */}
-                      {cardData?.attachments && cardData.attachments.length > 0 && (
-                        <div>
-                          <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">
-                            Attachments ({cardData.attachments.length})
+                      {/* Attachments Section - Enhanced */}
+                      <div className="mt-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium">
+                            Attachments ({attachments.length})
                           </h4>
-                          <div className="text-sm text-blue-600 dark:text-blue-400">
-                            <a href="#" className="hover:underline flex items-center">
-                              <FiPaperclip className="mr-1" /> View attachments
-                            </a>
-                          </div>
+                          {canModify && (
+                            <button
+                              onClick={() => setShowAttachmentUpload(true)}
+                              className="p-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
+                              title="Upload file"
+                            >
+                              <FiUpload className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
-                      )}
+                        
+                        {attachments.length > 0 ? (
+                          <div className="space-y-1 max-h-32 overflow-y-auto">
+                            {attachments.map(attachment => (
+                              <div key={attachment.id} className="flex items-center justify-between text-sm p-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                                <button
+                                  onClick={() => handleDownloadAttachment(attachment.id, attachment.file_name)}
+                                  className="flex items-center flex-1 min-w-0 text-left"
+                                  title={attachment.file_name}
+                                >
+                                  <span className="mr-2">{getFileIcon(attachment.file_type)}</span>
+                                  <span className="truncate text-gray-900 dark:text-gray-100">
+                                    {attachment.file_name}
+                                  </span>
+                                </button>
+                                {canModify && (
+                                  <button
+                                    onClick={() => handleDeleteAttachment(attachment.id, attachment.file_name)}
+                                    className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 ml-1"
+                                    title="Delete"
+                                  >
+                                    <FiTrash2 className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-3 border border-dashed border-gray-200 dark:border-gray-600 rounded">
+                            <FiPaperclip className="w-6 h-6 text-gray-300 dark:text-gray-600 mx-auto mb-1" />
+                            <p className="text-xs text-gray-500 dark:text-gray-400">No files attached</p>
+                            {canModify && (
+                              <button
+                                onClick={() => setShowAttachmentUpload(true)}
+                                className="mt-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                              >
+                                Add attachment
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
 
                       {/* Labels */}
                       {cardData?.labels && cardData.labels.length > 0 && (
@@ -1140,6 +1440,14 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
           value: cardData.cover_img
         } : null}
         onCoverSelect={handleCoverSelect}
+      />
+
+      {/* Attachment Upload Modal */}
+      <AttachmentUploadModal
+        isOpen={showAttachmentUpload}
+        onClose={() => setShowAttachmentUpload(false)}
+        onUpload={processFileUpload}
+        uploadingAttachment={uploadingAttachment}
       />
     </div>
   );
