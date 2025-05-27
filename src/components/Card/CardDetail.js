@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiX, FiUser, FiClock, FiTag, FiPaperclip, FiMessageSquare, FiAlertCircle, FiCheck, FiChevronDown } from 'react-icons/fi';
+import { FiX, FiUser, FiClock, FiTag, FiPaperclip, FiMessageSquare, FiAlertCircle, FiCheck, FiChevronDown, FiImage } from 'react-icons/fi';
 import { format } from 'date-fns';
 import api from '../../services/api';
 import { createEditableProps } from '../../utils/contentEditable';
 import { useAlert } from '../../contexts/AlertContext';
 import { emitBoardChange } from '../../services/socket';
+import CoverImagePicker from './CoverImagePicker';
 
 // Hàm hỗ trợ để lấy tên và màu cho trạng thái
 const getStatusInfo = (status) => {
@@ -94,6 +95,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
 
   const [newComment, setNewComment] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
+  const [showCoverPicker, setShowCoverPicker] = useState(false);
 
   const modalRef = useRef(null);
   const textareaRef = useRef(null);
@@ -476,6 +478,109 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
     }
   };
 
+  const handleCoverSelect = async (coverData) => {
+    if (!canModify) return;
+
+    setLoading(true);
+    try {
+      const updatedCard = {
+        cover_img: coverData ? coverData.value : null // Lưu trực tiếp value (URL hoặc màu)
+      };
+
+      const response = await api.put(`/cards/${card.id}`, updatedCard);
+
+      // Update local state
+      setCardData(response.data.card);
+
+      // Notify parent component
+      if (onUpdate) {
+        onUpdate(response.data.card);
+      }
+
+      // Emit socket event for real-time updates
+      if (cardData && cardData.board_id) {
+        emitBoardChange(cardData.board_id, 'card_updated', response.data.card);
+      }
+    } catch (error) {
+      console.error('Failed to update card cover', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderModalCoverImage = () => {
+    if (!cardData?.cover_img) return null;
+
+    // Kiểm tra xem cover_img là URL ảnh hay mã màu
+    const isImageUrl = cardData.cover_img.startsWith('http') || cardData.cover_img.startsWith('/static') || cardData.cover_img.startsWith('data:');
+    const isColorCode = cardData.cover_img.startsWith('#');
+
+    if (isImageUrl) {
+      return (
+        <div className="relative w-full h-32 mb-4 rounded-lg overflow-hidden">
+          <img
+            src={cardData.cover_img}
+            alt="Card cover"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'block';
+            }}
+          />
+          <div 
+            className="hidden w-full h-full bg-gradient-to-br from-blue-400 to-purple-500"
+          />
+          {canModify && (
+            <button
+              onClick={() => setShowCoverPicker(true)}
+              className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded text-xs transition-colors"
+              title="Change cover"
+            >
+              <FiImage className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+      );
+    } else if (isColorCode) {
+      return (
+        <div className="relative w-full h-32 mb-4 rounded-lg overflow-hidden">
+          <div 
+            className="w-full h-full"
+            style={{ backgroundColor: cardData.cover_img }}
+          />
+          {canModify && (
+            <button
+              onClick={() => setShowCoverPicker(true)}
+              className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded text-xs transition-colors"
+              title="Change cover"
+            >
+              <FiImage className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  const renderAddCoverButton = () => {
+    if (cardData?.cover_img || !canModify) return null;
+
+    return (
+      <div className="mb-4">
+        <button
+          onClick={() => setShowCoverPicker(true)}
+          className="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+        >
+          <FiImage className="w-8 h-8 mb-2" />
+          <span className="text-sm font-medium">Add Cover Image</span>
+          <span className="text-xs">Choose from images or colors</span>
+        </button>
+      </div>
+    );
+  };
+
   const editableProps = createEditableProps(
     cardTitle,
     handleCardTitleChange,
@@ -539,7 +644,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
               )}
             </div>
 
-            {/* Card Title with Inline Edit */}
+            {/* Card Title với Inline Edit */}
             {isEditingTitle && canModify ? (
               <input
                 {...editableProps}
@@ -569,10 +674,14 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
           </div>
         ) : (
           <>
-            {/* Content - divided into left main panel and right sidebar */}
+            {/* Content - chia thành left main panel và right sidebar */}
             <div className="flex-1 flex flex-col md:flex-row overflow-auto">
-              {/* Main content panel (title, description, comments) */}
+              {/* Main content panel */}
               <div className="flex-1 p-4 overflow-y-auto">
+                {/* Cover Image Section - Thêm phần này */}
+                {renderModalCoverImage()}
+                {renderAddCoverButton()}
+
                 {editMode ? (
                   <>
                     {/* Title input */}
@@ -647,13 +756,12 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                   </>
                 )}
 
-                {/* Comments section - visible in both modes */}
+                {/* Comments section - giữ nguyên như code hiện tại */}
                 <div className="mt-6 flex flex-col">
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
                     <FiMessageSquare className="mr-1" /> Comments
                   </h3>
 
-                  {/* Comment container với scroll riêng và thiết kế nhỏ gọn hơn */}
                   <div className="border border-gray-200 dark:border-gray-700 dark:bg-gray-800 rounded-md overflow-hidden flex flex-col">
                     <div className="overflow-y-auto max-h-[200px] flex-1 bg-gray-50 dark:bg-gray-800">
                       {cardData?.comments && cardData.comments.length > 0 ? (
@@ -685,7 +793,6 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                       )}
                     </div>
 
-                    {/* Add comment input - nhỏ gọn hơn */}
                     <div className="p-2 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
                       <textarea
                         className="w-full p-1.5 text-xs border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
@@ -718,11 +825,27 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                 </div>
               </div>
 
-              {/* Sidebar (metadata, actions) */}
+              {/* Right Sidebar */}
               <div className="w-full md:w-72 p-4 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700 overflow-y-auto">
                 {editMode ? (
                   <>
-                    {/* Due date picker */}
+                    {/* Cover Image Button trong Edit Mode */}
+                    {canModify && (
+                      <div className="mb-4">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          Cover Image
+                        </label>
+                        <button
+                          onClick={() => setShowCoverPicker(true)}
+                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm flex items-center justify-center"
+                        >
+                          <FiImage className="w-4 h-4 mr-2" />
+                          {cardData?.cover_img ? 'Change Cover' : 'Add Cover'}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Các phần khác trong edit mode - giữ nguyên */}
                     <div className="mb-4">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Due Date
@@ -801,7 +924,23 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                   </>
                 ) : (
                   <>
-                    {/* Metadata display */}
+                    {/* Actions Section - Thêm phần này vào đầu sidebar */}
+                    {canModify && (
+                      <div className="mb-6">
+                        <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-2">Actions</h4>
+                        <div className="space-y-2">
+                          <button
+                            onClick={() => setShowCoverPicker(true)}
+                            className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center"
+                          >
+                            <FiImage className="w-4 h-4 mr-2" />
+                            {cardData?.cover_image ? 'Change Cover' : 'Add Cover'}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Metadata display - giữ nguyên các phần hiện có */}
                     <div className="space-y-4">
                       {/* Status */}
                       <div>
@@ -872,7 +1011,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                         </div>
                       </div>
 
-                      {/* Attachments - simplified */}
+                      {/* Attachments */}
                       {cardData?.attachments && cardData.attachments.length > 0 && (
                         <div>
                           <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">
@@ -911,7 +1050,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
               </div>
             </div>
 
-            {/* Footer action buttons */}
+            {/* Footer action buttons - giữ nguyên */}
             <div className="border-t border-gray-200 dark:border-gray-700 p-4 flex justify-between">
               {editMode ? (
                 <>
@@ -954,6 +1093,17 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
           </>
         )}
       </div>
+
+      {/* CoverImagePicker Modal */}
+      <CoverImagePicker
+        isOpen={showCoverPicker}
+        onClose={() => setShowCoverPicker(false)}
+        currentCover={cardData?.cover_img ? {
+          type: cardData.cover_img.startsWith('#') ? 'color' : 'image',
+          value: cardData.cover_img
+        } : null}
+        onCoverSelect={handleCoverSelect}
+      />
     </div>
   );
 };

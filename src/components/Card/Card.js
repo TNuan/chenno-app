@@ -34,6 +34,48 @@ const Card = ({ card, index, canModify = true, onClick, boardMembers }) => {
   // Đảm bảo canModify luôn là boolean
   const canModifyBoolean = Boolean(canModify);
 
+  // Xử lý cover image - Sử dụng cover_img trực tiếp
+  const renderCoverImage = () => {
+    console.log('Card cover_img:', card.cover_img); // Debug line
+    
+    if (!card.cover_img) return null;
+
+    // Kiểm tra xem cover_img là URL ảnh hay mã màu
+    const isImageUrl = card.cover_img.startsWith('http') || card.cover_img.startsWith('/static') || card.cover_img.startsWith('data:');
+    const isColorCode = card.cover_img.startsWith('#');
+
+    if (isImageUrl) {
+      console.log('Rendering image cover:', card.cover_img); // Debug line
+      return (
+        <div className="w-full h-20 rounded-md overflow-hidden">
+          <img
+            src={card.cover_img}
+            alt="Card cover"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              console.error('Image failed to load:', card.cover_img);
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'block';
+            }}
+          />
+          <div 
+            className="hidden w-full h-full rounded-md bg-gradient-to-br from-blue-400 to-purple-500"
+          />
+        </div>
+      );
+    } else if (isColorCode) {
+      console.log('Rendering color cover:', card.cover_img); // Debug line
+      return (
+        <div 
+          className="w-full h-20 rounded-md"
+          style={{ backgroundColor: card.cover_img }}
+        />
+      );
+    }
+
+    return null;
+  };
+
   return (
     <Draggable 
       draggableId={cardId} 
@@ -42,7 +84,7 @@ const Card = ({ card, index, canModify = true, onClick, boardMembers }) => {
     >
       {(provided, snapshot) => (
         <div 
-          className={`p-3 mb-2 bg-white dark:bg-gray-700 rounded-lg shadow-sm draggable-card
+          className={`mb-2 bg-white dark:bg-gray-700 rounded-lg shadow-sm draggable-card
             ${canModifyBoolean ? 'cursor-pointer' : ''} 
             hover:shadow-md transition-shadow border 
             ${snapshot.isDragging ? 'border-blue-400 shadow-md drag-card-preview' : 'border-transparent hover:border-gray-200 dark:hover:border-gray-600'}`}
@@ -54,10 +96,12 @@ const Card = ({ card, index, canModify = true, onClick, boardMembers }) => {
           onMouseLeave={() => setIsHovered(false)}
           style={{
             ...provided.draggableProps.style,
-            // Quan trọng: không định nghĩa các style cố định khác
           }}
         >
-          {/* Card content - không thay đổi */}
+          {/* Cover Image */}
+          {renderCoverImage()}
+
+          {/* Card Labels */}
           {card.labels && card.labels.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-2">
               {card.labels.slice(0, 2).map(label => (
@@ -73,7 +117,7 @@ const Card = ({ card, index, canModify = true, onClick, boardMembers }) => {
             </div>
           )}
           
-          <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200">
+          <h4 className="p-3 text-sm font-medium text-gray-800 dark:text-gray-200">
             {card.title}
           </h4>
           
