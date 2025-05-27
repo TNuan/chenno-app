@@ -3,7 +3,7 @@ import { DragDropContext, Droppable } from 'react-beautiful-dnd';
 import { FiPlus, FiLock } from 'react-icons/fi';
 import Column from '../Column/Column';
 import { toast } from 'react-toastify';
-import { createColumn, updateColumn, updateCard } from '../../services/api';
+import { createColumn, updateColumn, updateCard, deleteColumn } from '../../services/api';
 import { emitBoardChange } from '../../services/socket';
 
 const BoardContent = ({ board, socketRef }) => {
@@ -111,12 +111,6 @@ const BoardContent = ({ board, socketRef }) => {
             // Use deep copy to avoid reference issues
             const cardToMove = JSON.parse(JSON.stringify(sourceColumn.cards[source.index]));
             
-            // Debug để theo dõi
-            console.log('Moving card:', {
-                card: cardToMove,
-                from: { column: sourceColumn.title, index: source.index },
-                to: { column: destColumn.title, index: destination.index }
-            });
 
             // Remove from source
             sourceColumn.cards.splice(source.index, 1);
@@ -241,6 +235,12 @@ const BoardContent = ({ board, socketRef }) => {
         }
     };
 
+    const handleDeleteColumn = (columnId) => {
+        const updatedColumns = columns.filter(col => col.id !== columnId);
+        setColumns(updatedColumns);
+        emitBoardChange(board.id, 'column_delete', columnId);
+    }
+
     if (!board) {
         return null;
     }
@@ -299,7 +299,9 @@ const BoardContent = ({ board, socketRef }) => {
                                             canModify={Boolean(canModify)} // Thay vì !!canModify
                                             onUpdateColumnState={handleColumnUpdate}
                                             onAddCard={handleAddCard}
+                                            onDeleteColumn={handleDeleteColumn}
                                             boardMembers={board.members || []}
+                                            socketRef={socketRef}
                                         />
                                     ))
                                 ) : (

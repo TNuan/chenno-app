@@ -170,6 +170,12 @@ const Board = () => {
               ...prevBoard,
               columns: [...prevBoard.columns, data.payload]
             }));
+          } else if (data.changeType === 'column_delete') {
+            // Handle column deletion 
+            setBoard(prevBoard => ({
+              ...prevBoard,
+              columns: prevBoard.columns.filter(col => col.id !== data.payload)
+            }));
           } else if (data.changeType === 'board_update') {
             // Handle board updates (title, visibility, etc)
             setBoard(prevBoard => {

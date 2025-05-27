@@ -5,9 +5,11 @@ import { useParams } from 'react-router-dom'
 import { createEditableProps } from '../../utils/contentEditable'
 import Card from '../Card/Card'
 import CardDetail from '../Card/CardDetail'
-import api, { createCard } from '../../services/api'
+import api, { createCard, deleteColumn } from '../../services/api'
+import { useAlert } from '../../contexts/AlertContext' // Thêm import này
+import { toast } from 'react-toastify' // Nếu bạn đang sử dụng toast để thông báo
 
-const Column = ({ column, index, onUpdateColumnState, onAddCard, canModify = true, boardMembers = [] }) => {
+const Column = ({ column, index, onUpdateColumnState, onAddCard, onDeleteColumn, canModify = true, boardMembers = [], socketRef}) => {
   const [isEditing, setIsEditing] = useState(false)
   const [columnTitle, setColumnTitle] = useState(column?.title || '')
   const [showMenu, setShowMenu] = useState(false)
@@ -27,22 +29,7 @@ const Column = ({ column, index, onUpdateColumnState, onAddCard, canModify = tru
   const canModifyBoolean = Boolean(canModify)
   const cards = column?.cards || []
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setShowMenu(false)
-      }
-
-      if (showAddCard && addCardFormRef.current && !addCardFormRef.current.contains(event.target)) {
-        handleCancelAddCard()
-      }
-    }
-
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [showAddCard])
+  const { showConfirm } = useAlert();
 
   useEffect(() => {
     if (showAddCard && newCardInputRef.current) {
@@ -154,9 +141,28 @@ const Column = ({ column, index, onUpdateColumnState, onAddCard, canModify = tru
   }
 
   const handleDeleteColumn = () => {
-    if (!canModifyBoolean) return
-    console.log('Delete column:', column.id)
-  }
+    if (!canModifyBoolean) return;
+    
+    const hasCards = cards.length > 0;
+    const message = hasCards 
+      ? `Bạn có chắc chắn muốn xóa cột "${column.title}" và tất cả ${cards.length} thẻ bên trong không? Hành động này không thể hoàn tác.`
+      : `Bạn có chắc chắn muốn xóa cột "${column.title}" không? Hành động này không thể hoàn tác.`;
+    
+    showConfirm(
+      'Xóa cột', 
+      message, 
+      async () => {
+        try {
+          await deleteColumn(column.id);
+          onDeleteColumn(column.id);
+          toast.success('Cột đã được xóa thành công.');
+        } catch (error) {
+          console.error('Failed to delete column:', error);
+          toast.error('Xóa cột thất bại. Vui lòng thử lại.');
+        }
+      }
+    );
+  };
 
   const handleCardClick = (card) => {
     setSelectedCard(card)
@@ -355,6 +361,7 @@ const Column = ({ column, index, onUpdateColumnState, onAddCard, canModify = tru
               onUpdate={handleCardUpdate}
               boardMembers={boardMembersList}
               canModify={canModifyBoolean}
+              socketRef={socketRef}
             />
           )}
         </div>
