@@ -18,6 +18,46 @@ const getDueDateClass = (dueDate) => {
   }
 };
 
+// Tách hàm renderCoverImage ra khỏi component
+const CardCoverImage = React.memo(({ coverImg }) => {
+  if (!coverImg) return null;
+
+  // Kiểm tra xem cover_img là URL ảnh hay mã màu
+  const isImageUrl = coverImg.startsWith('http') || 
+                     coverImg.startsWith('/static') || 
+                     coverImg.startsWith('data:');
+  const isColorCode = coverImg.startsWith('#');
+
+  if (isImageUrl) {
+    return (
+      <div className="w-full h-20 rounded-md overflow-hidden">
+        <img
+          src={coverImg}
+          alt="Card cover"
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            console.error('Image failed to load:', coverImg);
+            e.target.style.display = 'none';
+            e.target.nextSibling.style.display = 'block';
+          }}
+        />
+        <div 
+          className="hidden w-full h-full rounded-md bg-gradient-to-br from-blue-400 to-purple-500"
+        />
+      </div>
+    );
+  } else if (isColorCode) {
+    return (
+      <div 
+        className="w-full h-20 rounded-md"
+        style={{ backgroundColor: coverImg }}
+      />
+    );
+  }
+
+  return null;
+});
+
 const Card = ({ card, index, canModify = true, onClick, boardMembers }) => {
   const [isHovered, setIsHovered] = useState(false);
   
@@ -33,48 +73,6 @@ const Card = ({ card, index, canModify = true, onClick, boardMembers }) => {
   const cardId = card && card.id ? `card-${card.id.toString()}` : `card-placeholder-${index}`;
   // Đảm bảo canModify luôn là boolean
   const canModifyBoolean = Boolean(canModify);
-
-  // Xử lý cover image - Sử dụng cover_img trực tiếp
-  const renderCoverImage = () => {
-    console.log('Card cover_img:', card.cover_img); // Debug line
-    
-    if (!card.cover_img) return null;
-
-    // Kiểm tra xem cover_img là URL ảnh hay mã màu
-    const isImageUrl = card.cover_img.startsWith('http') || card.cover_img.startsWith('/static') || card.cover_img.startsWith('data:');
-    const isColorCode = card.cover_img.startsWith('#');
-
-    if (isImageUrl) {
-      console.log('Rendering image cover:', card.cover_img); // Debug line
-      return (
-        <div className="w-full h-20 rounded-md overflow-hidden">
-          <img
-            src={card.cover_img}
-            alt="Card cover"
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              console.error('Image failed to load:', card.cover_img);
-              e.target.style.display = 'none';
-              e.target.nextSibling.style.display = 'block';
-            }}
-          />
-          <div 
-            className="hidden w-full h-full rounded-md bg-gradient-to-br from-blue-400 to-purple-500"
-          />
-        </div>
-      );
-    } else if (isColorCode) {
-      console.log('Rendering color cover:', card.cover_img); // Debug line
-      return (
-        <div 
-          className="w-full h-20 rounded-md"
-          style={{ backgroundColor: card.cover_img }}
-        />
-      );
-    }
-
-    return null;
-  };
 
   return (
     <Draggable 
@@ -99,7 +97,7 @@ const Card = ({ card, index, canModify = true, onClick, boardMembers }) => {
           }}
         >
           {/* Cover Image */}
-          {renderCoverImage()}
+          <CardCoverImage coverImg={card.cover_img} />
 
           {/* Card Labels */}
           {card.labels && card.labels.length > 0 && (
@@ -129,6 +127,7 @@ const Card = ({ card, index, canModify = true, onClick, boardMembers }) => {
                 </span>
               )}
               
+              {/* Đảm bảo attachment count được hiển thị */}
               {card.attachment_count > 0 && (
                 <span className="flex items-center text-gray-500 dark:text-gray-400">
                   <FiPaperclip className="w-3 h-3" />

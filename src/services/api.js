@@ -250,4 +250,56 @@ export const markAllNotificationsAsRead = async () => {
   return response.data;
 }
 
+// Attachment API
+export const uploadAttachment = async (cardId, file) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('card_id', cardId);
+  
+  const response = await api.post('/attachments', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return response.data;
+};
+
+export const getCardAttachments = async (cardId) => {
+  const response = await api.get(`/attachments/card/${cardId}`);
+  return response.data;
+};
+
+export const deleteAttachment = async (attachmentId) => {
+  const response = await api.delete(`/attachments/${attachmentId}`);
+  return response.data;
+};
+
+export const downloadAttachment = async (attachmentId, fileName) => {
+  try {
+    // Sử dụng API instance với responseType là blob
+    const response = await api.get(`/attachments/download/${attachmentId}`, {
+      responseType: 'blob' // Quan trọng để xử lý dữ liệu nhị phân
+    });
+    
+    // Tạo URL từ blob data
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    
+    // Tạo link và kích hoạt download
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+    
+    // Clean up
+    link.parentNode.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    return response;
+  } catch (error) {
+    console.error('Error downloading attachment:', error);
+    throw error;
+  }
+};
+
 export default api;
