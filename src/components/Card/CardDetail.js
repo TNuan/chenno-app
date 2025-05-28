@@ -1017,6 +1017,66 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                   </>
                 )}
 
+                {/* Attachments section */}
+                {/* Attachments Section - Enhanced */}
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
+                      <FiPaperclip className="mr-1" /> Attachments ({attachments.length})
+                    </h3>
+                    {canModify && (
+                      <button
+                        onClick={() => setShowAttachmentUpload(true)}
+                        className="p-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
+                        title="Upload file"
+                      >
+                        <FiUpload className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {attachments.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto">
+                      {attachments.map(attachment => (
+                        <div key={attachment.id} className="flex items-center justify-between text-sm p-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
+                          <button
+                            onClick={() => handleDownloadAttachment(attachment.id, attachment.file_name)}
+                            className="flex items-center flex-1 min-w-0 text-left"
+                            title={`${attachment.file_name} (${formatFileSize(attachment.file_size)} • ${format(new Date(attachment.created_at), 'MMM d, yyyy')}${attachment.uploaded_by_username ? ` • by ${attachment.uploaded_by_username}` : ''})`}
+                          >
+                            <span className="mr-1 flex-shrink-0">{getFileIcon(attachment.file_type)}</span>
+                            <span className="truncate text-gray-900 dark:text-gray-100">
+                              {attachment.file_name}
+                            </span>
+                          </button>
+                          {canModify && (
+                            <button
+                              onClick={() => handleDeleteAttachment(attachment.id, attachment.file_name)}
+                              className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 ml-1 flex-shrink-0"
+                              title="Delete"
+                            >
+                              <FiTrash2 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-3 border border-dashed border-gray-200 dark:border-gray-600 rounded">
+                      <FiPaperclip className="w-6 h-6 text-gray-300 dark:text-gray-600 mx-auto mb-1" />
+                      <p className="text-xs text-gray-500 dark:text-gray-400">No files attached</p>
+                      {canModify && (
+                        <button
+                          onClick={() => setShowAttachmentUpload(true)}
+                          className="mt-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          Add attachment
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 {/* Comments section - giữ nguyên như code hiện tại */}
                 <div className="mt-6 flex flex-col">
                   <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
@@ -1085,52 +1145,6 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                   </div>
                 </div>
 
-                {/* Attachments section */}
-                {(!editMode && attachments.length > 0) && (
-                  <div className="mt-6 flex flex-col">
-                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                      <FiPaperclip className="mr-1" /> Attachments ({attachments.length})
-                    </h3>
-
-                    <div className="space-y-2">
-                      {attachments.map(attachment => (
-                        <div key={attachment.id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded-md">
-                          <div className="flex items-center flex-1 min-w-0">
-                            <span className="text-lg mr-2">{getFileIcon(attachment.file_type)}</span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                                {attachment.file_name}
-                              </p>
-                              <p className="text-xs text-gray-500 dark:text-gray-400">
-                                {formatFileSize(attachment.file_size)} • {format(new Date(attachment.created_at), 'MMM d, yyyy')}
-                                {attachment.uploaded_by_username && ` • by ${attachment.uploaded_by_username}`}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => handleDownloadAttachment(attachment.id, attachment.file_name)}
-                              className="p-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400"
-                              title="Download"
-                            >
-                              <FiDownload className="w-4 h-4" />
-                            </button>
-                            {canModify && (
-                              <button
-                                onClick={() => handleDeleteAttachment(attachment.id, attachment.file_name)}
-                                className="p-1 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400"
-                                title="Delete"
-                              >
-                                <FiTrash2 className="w-4 h-4" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Right Sidebar */}
@@ -1234,28 +1248,63 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                   <>
                     {/* Metadata display - giữ nguyên các phần hiện có */}
                     <div className="space-y-4">
-                      {/* Status */}
-                      <div>
-                        <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Status</h4>
-                        <div className={`${statusInfo.color} inline-block px-2.5 py-0.5 text-xs text-white rounded`}>
-                          {statusInfo.name}
-                        </div>
-                      </div>
 
                       {/* Assignee */}
                       <div>
                         <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Assignee</h4>
-                        {cardData?.assigned_to ? (
-                          <div className="flex items-center">
-                            <div className="w-7 h-7 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-200 text-xs font-medium mr-2">
-                              {cardData.assigned_to_username ? cardData.assigned_to_username.charAt(0).toUpperCase() : 'U'}
-                            </div>
-                            <span className="text-sm text-gray-800 dark:text-gray-200">
-                              {cardData.assigned_to_username || 'Unknown User'}
-                            </span>
-                          </div>
+                        {canModify ? (
+                          <select
+                            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                            value={cardData?.assigned_to || 'none'}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              const assignedTo = value === 'none' ? null : parseInt(value, 10);
+                              
+                              if (assignedTo === cardData?.assigned_to) return;
+                              
+                              setLoading(true);
+                              api.put(`/cards/${card.id}`, {
+                                ...cardData,
+                                assigned_to: assignedTo
+                              })
+                              .then(response => {
+                                setCardData(response.data.card);
+                                if (onUpdate) {
+                                  onUpdate(response.data.card);
+                                }
+                                if (cardData && cardData.board_id) {
+                                  emitBoardChange(cardData.board_id, 'card_updated', response.data.card);
+                                }
+                              })
+                              .catch(error => {
+                                console.error('Failed to update assignee', error);
+                              })
+                              .finally(() => {
+                                setLoading(false);
+                              });
+                            }}
+                            disabled={loading}
+                          >
+                            <option value="none">Unassigned</option>
+                            {boardMembers.map(member => (
+                              <option key={member.id} value={member.id}>
+                                {member.username || member.email}
+                              </option>
+                            ))}
+                          </select>
                         ) : (
-                          <span className="text-sm text-gray-500 dark:text-gray-400">Unassigned</span>
+                          cardData?.assigned_to ? (
+                            <div className="flex items-center">
+                              <div className="w-7 h-7 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-200 text-xs font-medium mr-2">
+                                {cardData.assigned_to_username ? cardData.assigned_to_username.charAt(0).toUpperCase() : 'U'}
+                              </div>
+                              <span className="text-sm text-gray-800 dark:text-gray-200">
+                                {cardData.assigned_to_username || 'Unknown User'}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-sm text-gray-500 dark:text-gray-400">Unassigned</span>
+                          )
                         )}
                       </div>
 
@@ -1273,23 +1322,25 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                           <span className="text-sm text-gray-500 dark:text-gray-400">None</span>
                         )}
                       </div>
+                      
 
-                      {/* Priority */}
-                      <div>
-                        <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Priority</h4>
-                        <div className={`inline-block px-2.5 py-0.5 text-xs rounded ${priorityInfo.color}`}>
-                          {priorityInfo.name}
+                      <div className="flex justify-between gap-4">
+                        {/* Priority */}
+                        <div>
+                          <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Priority</h4>
+                          <div className={`inline-block px-2.5 py-0.5 text-xs rounded ${priorityInfo.color}`}>
+                            {priorityInfo.name}
+                          </div>
+                        </div>
+
+                        {/* Difficulty */}
+                        <div>
+                          <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Difficulty</h4>
+                          <div className={`inline-block px-2.5 py-0.5 text-xs rounded ${difficultyInfo.color}`}>
+                            {difficultyInfo.name}
+                          </div>
                         </div>
                       </div>
-
-                      {/* Difficulty */}
-                      <div>
-                        <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Difficulty</h4>
-                        <div className={`inline-block px-2.5 py-0.5 text-xs rounded ${difficultyInfo.color}`}>
-                          {difficultyInfo.name}
-                        </div>
-                      </div>
-
                       {/* Created Info */}
                       <div>
                         <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Created</h4>
@@ -1301,65 +1352,6 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                             </span>
                           )}
                         </div>
-                      </div>
-
-                      {/* Attachments Section - Enhanced */}
-                      <div className="mt-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium">
-                            Attachments ({attachments.length})
-                          </h4>
-                          {canModify && (
-                            <button
-                              onClick={() => setShowAttachmentUpload(true)}
-                              className="p-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
-                              title="Upload file"
-                            >
-                              <FiUpload className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                        
-                        {attachments.length > 0 ? (
-                          <div className="space-y-1 max-h-32 overflow-y-auto">
-                            {attachments.map(attachment => (
-                              <div key={attachment.id} className="flex items-center justify-between text-sm p-1 hover:bg-gray-50 dark:hover:bg-gray-700 rounded">
-                                <button
-                                  onClick={() => handleDownloadAttachment(attachment.id, attachment.file_name)}
-                                  className="flex items-center flex-1 min-w-0 text-left"
-                                  title={attachment.file_name}
-                                >
-                                  <span className="mr-2">{getFileIcon(attachment.file_type)}</span>
-                                  <span className="truncate text-gray-900 dark:text-gray-100">
-                                    {attachment.file_name}
-                                  </span>
-                                </button>
-                                {canModify && (
-                                  <button
-                                    onClick={() => handleDeleteAttachment(attachment.id, attachment.file_name)}
-                                    className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 ml-1"
-                                    title="Delete"
-                                  >
-                                    <FiTrash2 className="w-3 h-3" />
-                                  </button>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-3 border border-dashed border-gray-200 dark:border-gray-600 rounded">
-                            <FiPaperclip className="w-6 h-6 text-gray-300 dark:text-gray-600 mx-auto mb-1" />
-                            <p className="text-xs text-gray-500 dark:text-gray-400">No files attached</p>
-                            {canModify && (
-                              <button
-                                onClick={() => setShowAttachmentUpload(true)}
-                                className="mt-1 text-xs text-blue-600 dark:text-blue-400 hover:underline"
-                              >
-                                Add attachment
-                              </button>
-                            )}
-                          </div>
-                        )}
                       </div>
 
                       {/* Labels */}

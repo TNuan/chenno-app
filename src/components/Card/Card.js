@@ -115,39 +115,42 @@ const Card = ({ card, index, canModify = true, onClick, boardMembers }) => {
             </div>
           )}
           
-          <h4 className="p-3 text-sm font-medium text-gray-800 dark:text-gray-200">
-            {card.title}
-          </h4>
-          
-          <div className="mt-2 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              {card.due_date && (
-                <span className={`flex items-center ${getDueDateClass(card.due_date)}`}>
-                  <FiClock className="w-3 h-3" />
-                </span>
-              )}
+          <div className="p-2">
+          {/* Card Title */}
+            <h4 className="text-sm font-medium text-gray-800 dark:text-gray-200">
+              {card.title}
+            </h4>
+            
+            <div className="mt-2 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2">
+                {card.due_date && (
+                  <span className={`flex items-center ${getDueDateClass(card.due_date)}`}>
+                    <FiClock className="w-3 h-3" />
+                  </span>
+                )}
+                
+                {/* Đảm bảo attachment count được hiển thị */}
+                {card.attachment_count > 0 && (
+                  <span className="flex items-center text-gray-500 dark:text-gray-400">
+                    <FiPaperclip className="w-3 h-3" />
+                    <span className="ml-0.5">{card.attachment_count}</span>
+                  </span>
+                )}
+                
+                {card.comment_count > 0 && (
+                  <span className="flex items-center text-gray-500 dark:text-gray-400">
+                    <FiMessageSquare className="w-3 h-3" />
+                    <span className="ml-0.5">{card.comment_count}</span>
+                  </span>
+                )}
+              </div>
               
-              {/* Đảm bảo attachment count được hiển thị */}
-              {card.attachment_count > 0 && (
-                <span className="flex items-center text-gray-500 dark:text-gray-400">
-                  <FiPaperclip className="w-3 h-3" />
-                  <span className="ml-0.5">{card.attachment_count}</span>
-                </span>
-              )}
-              
-              {card.comment_count > 0 && (
-                <span className="flex items-center text-gray-500 dark:text-gray-400">
-                  <FiMessageSquare className="w-3 h-3" />
-                  <span className="ml-0.5">{card.comment_count}</span>
-                </span>
+              {card.assigned_to && (
+                <div className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xs">
+                  {card.assigned_to_name ? card.assigned_to_name.charAt(0).toUpperCase() : 'U'}
+                </div>
               )}
             </div>
-            
-            {card.assigned_to && (
-              <div className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xs">
-                {card.assigned_to_name ? card.assigned_to_name.charAt(0).toUpperCase() : 'U'}
-              </div>
-            )}
           </div>
         </div>
       )}
