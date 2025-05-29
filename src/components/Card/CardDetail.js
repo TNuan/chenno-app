@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiX, FiUser, FiClock, FiTag, FiPaperclip, FiMessageSquare, FiAlertCircle, FiCheck, FiChevronDown, FiImage, FiUpload, FiDownload, FiTrash2, FiFile } from 'react-icons/fi';
+import { FiX, FiUser, FiClock, FiTag, FiPaperclip, FiMessageSquare, FiAlertCircle, FiEdit, FiChevronDown, FiImage, FiUpload, FiDownload, FiTrash2, FiFile } from 'react-icons/fi';
 import { format } from 'date-fns';
 import api, { uploadAttachment, getCardAttachments, deleteAttachment, downloadAttachment } from '../../services/api';
 import { createEditableProps } from '../../utils/contentEditable';
@@ -83,24 +83,13 @@ const difficultyOptions = [
 const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canModify, socketRef }) => {
   const [loading, setLoading] = useState(false);
   const [cardData, setCardData] = useState(null);
-  const [editMode, setEditMode] = useState(false);
-  const [editFields, setEditFields] = useState({
-    title: '',
-    description: '',
-    status: 'todo',
-    priority_level: 0,
-    difficulty_level: 0,
-    due_date: '',
-    assigned_to: null
-  });
-
   const [newComment, setNewComment] = useState('');
   const [commentLoading, setCommentLoading] = useState(false);
   const [showCoverPicker, setShowCoverPicker] = useState(false);
   const [attachments, setAttachments] = useState([]);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [showAttachmentUpload, setShowAttachmentUpload] = useState(false);
-
+  
   const modalRef = useRef(null);
   const textareaRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -111,6 +100,15 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
   const statusMenuRef = useRef(null);
   const { showConfirm } = useAlert();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isPriorityMenuOpen, setIsPriorityMenuOpen] = useState(false);
+  const priorityMenuRef = useRef(null);
+  const [isDifficultyMenuOpen, setIsDifficultyMenuOpen] = useState(false);
+  const difficultyMenuRef = useRef(null);
+
+  // Thêm state cho việc chỉnh sửa description
+  const [isEditingDescription, setIsEditingDescription] = useState(false);
+  const [descriptionText, setDescriptionText] = useState('');
+  const descriptionTextareaRef = useRef(null);
 
   // Fetch card details when opened
   useEffect(() => {
@@ -118,14 +116,6 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
       fetchCardDetails(card.id);
     }
   }, [isOpen, card]);
-
-  // Auto-adjust textarea height
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
-    }
-  }, [editFields.description]);
 
   // Click outside to close
   useEffect(() => {
@@ -263,57 +253,12 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
         setAttachments([]);
       }
 
-      // Initialize edit fields with current values
-      setEditFields({
-        title: response.data.card.title,
-        description: response.data.card.description || '',
-        status: response.data.card.status || 'todo',
-        priority_level: response.data.card.priority_level || 0,
-        difficulty_level: response.data.card.difficulty_level || 0,
-        due_date: response.data.card.due_date ? new Date(response.data.card.due_date).toISOString().split('T')[0] : '',
-        assigned_to: response.data.card.assigned_to || null
-      });
+      // Không cần khởi tạo editFields nữa
     } catch (error) {
       console.error('Failed to fetch card details', error);
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setEditFields((prev) => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleStatusChange = (status) => {
-    setEditFields((prev) => ({
-      ...prev,
-      status
-    }));
-  };
-
-  const handlePriorityChange = (priority) => {
-    setEditFields((prev) => ({
-      ...prev,
-      priority_level: parseInt(priority, 10)
-    }));
-  };
-
-  const handleDifficultyChange = (difficulty) => {
-    setEditFields((prev) => ({
-      ...prev,
-      difficulty_level: parseInt(difficulty, 10)
-    }));
-  };
-
-  const handleAssigneeChange = (userId) => {
-    setEditFields((prev) => ({
-      ...prev,
-      assigned_to: userId === 'none' ? null : parseInt(userId, 10)
-    }));
   };
 
   const handleCommentChange = (e) => {
@@ -356,43 +301,6 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
     }
   };
 
-  const handleSave = async () => {
-    setLoading(true);
-    try {
-      // Get the required fields from editFields
-      const updatedCard = {
-        title: editFields.title,
-        description: editFields.description,
-        status: editFields.status,
-        priority_level: editFields.priority_level,
-        difficulty_level: editFields.difficulty_level,
-        due_date: editFields.due_date ? new Date(editFields.due_date).toISOString() : null,
-        assigned_to: editFields.assigned_to
-      };
-
-      const response = await api.put(`/cards/${card.id}`, updatedCard);
-
-      // Update local state
-      setCardData(response.data.card);
-
-      // Notify parent component
-      if (onUpdate) {
-        onUpdate(response.data.card);
-      }
-
-      // Emit socket event for real-time updates
-      if (cardData && cardData.board_id) {
-        emitBoardChange(cardData.board_id, 'card_updated', response.data.card);
-      }
-
-      setEditMode(false);
-    } catch (error) {
-      console.error('Failed to update card', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleDelete = async () => {
     setIsConfirmOpen(true);
     
@@ -424,14 +332,14 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
   };
 
   const handleClose = () => {
-    if (editMode) {
-      if (window.confirm('You have unsaved changes. Are you sure you want to close?')) {
-        setEditMode(false);
-        onClose();
-      }
-    } else {
+    // if (editMode) {
+    //   if (window.confirm('You have unsaved changes. Are you sure you want to close?')) {
+    //     setEditMode(false);
+    //     onClose();
+    //   }
+    // } else {
       onClose();
-    }
+    // }
   };
 
   const handleCardTitleChange = (e) => {
@@ -498,13 +406,13 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
       // Update local state
       setCardData(response.data.card);
 
-      // Cập nhật editFields nếu đang trong edit mode
-      if (editMode) {
-        setEditFields(prev => ({
-          ...prev,
-          status
-        }));
-      }
+      // Không cần cập nhật editFields nữa
+      // if (editMode) {
+      //   setEditFields(prev => ({
+      //     ...prev,
+      //     status
+      //   }));
+      // }
 
       // Notify parent component
       if (onUpdate) {
@@ -512,14 +420,9 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
       }
 
       // Emit socket event for real-time updates
-      // const socket = getSocket();
-      // if (socket) {
-      //   socket.emit('board_change', {
-      //     type: 'card_updated',
-      //     boardId: cardData.board_id,
-      //     data: response.data.card
-      //   });
-      // }
+      if (cardData && cardData.board_id) {
+        emitBoardChange(cardData.board_id, 'card_updated', response.data.card);
+      }
     } catch (error) {
       console.error('Failed to update card status', error);
     } finally {
@@ -558,77 +461,65 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
     }
   };
 
-  const renderModalCoverImage = () => {
-    if (!cardData?.cover_img) return null;
-
-    // Kiểm tra xem cover_img là URL ảnh hay mã màu
-    const isImageUrl = cardData.cover_img.startsWith('http') || cardData.cover_img.startsWith('/static') || cardData.cover_img.startsWith('data:');
-    const isColorCode = cardData.cover_img.startsWith('#');
-
-    if (isImageUrl) {
-      return (
-        <div className="relative w-full h-32 mb-4 rounded-lg overflow-hidden">
-          <img
-            src={cardData.cover_img}
-            alt="Card cover"
-            className="w-full h-full object-cover"
-            onError={(e) => {
-              e.target.style.display = 'none';
-              e.target.nextSibling.style.display = 'block';
-            }}
-          />
-          <div 
-            className="hidden w-full h-full bg-gradient-to-br from-blue-400 to-purple-500"
-          />
-          {canModify && (
-            <button
-              onClick={() => setShowCoverPicker(true)}
-              className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded text-xs transition-colors"
-              title="Change cover"
-            >
-              <FiImage className="w-3 h-3" />
-            </button>
-          )}
-        </div>
-      );
-    } else if (isColorCode) {
-      return (
-        <div className="relative w-full h-32 mb-4 rounded-lg overflow-hidden">
-          <div 
-            className="w-full h-full"
-            style={{ backgroundColor: cardData.cover_img }}
-          />
-          {canModify && (
-            <button
-              onClick={() => setShowCoverPicker(true)}
-              className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white p-1.5 rounded text-xs transition-colors"
-              title="Change cover"
-            >
-              <FiImage className="w-3 h-3" />
-            </button>
-          )}
-        </div>
-      );
+  // Thêm useEffect để cập nhật descriptionText khi cardData thay đổi
+  useEffect(() => {
+    if (cardData) {
+      setDescriptionText(cardData.description || '');
     }
+  }, [cardData]);
 
-    return null;
+  // Thêm useEffect để auto-resize textarea khi chỉnh sửa description
+  useEffect(() => {
+    if (isEditingDescription && descriptionTextareaRef.current) {
+      descriptionTextareaRef.current.style.height = 'auto';
+      descriptionTextareaRef.current.style.height = `${descriptionTextareaRef.current.scrollHeight}px`;
+    }
+  }, [descriptionText, isEditingDescription]);
+
+  // Thêm handler để xử lý description
+  const handleDescriptionChange = (e) => {
+    setDescriptionText(e.target.value);
   };
 
-  const renderAddCoverButton = () => {
-    if (cardData?.cover_img || !canModify) return null;
+  const handleDescriptionSubmit = async () => {
+    if (descriptionText === cardData.description) {
+      setIsEditingDescription(false);
+      return;
+    }
 
-    return (
-      <div className="mb-4">
-        <button
-          onClick={() => setShowCoverPicker(true)}
-          className="w-full h-32 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg flex flex-col items-center justify-center text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-        >
-          <FiImage className="w-8 h-8 mb-2" />
-          <span className="text-sm font-medium">Add Cover Image</span>
-          <span className="text-xs">Choose from images or colors</span>
-        </button>
-      </div>
-    );
+    setLoading(true);
+    try {
+      const updatedCard = {
+        ...cardData,
+        description: descriptionText.trim()
+      };
+
+      const response = await api.put(`/cards/${card.id}`, updatedCard);
+
+      // Update local state
+      setCardData(response.data.card);
+
+      // Notify parent component
+      if (onUpdate) {
+        onUpdate(response.data.card);
+      }
+
+      // Emit socket event for real-time updates
+      if (cardData && cardData.board_id) {
+        emitBoardChange(cardData.board_id, 'card_updated', response.data.card);
+      }
+    } catch (error) {
+      console.error('Failed to update card description', error);
+      setDescriptionText(cardData.description || '');
+    } finally {
+      setIsEditingDescription(false);
+      setLoading(false);
+    }
+  };
+
+  const handleDescriptionCancel = () => {
+    setDescriptionText(cardData?.description || '');
+    setIsEditingDescription(false);
   };
 
   const editableProps = createEditableProps(
@@ -877,148 +768,80 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
             {/* Content - chia thành left main panel và right sidebar */}
             <div className="flex-1 flex flex-col md:flex-row overflow-auto">
               {/* Main content panel */}
-              <div className="flex-1 p-4 overflow-y-auto">
+              <div className="flex-1 p-4 overflow-y-auto">                
+                {/* Card title */}
+                <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                  {cardData?.title}
+                </h1>
 
-
-                {editMode ? (
-                  <>
-                    {/* Title input */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Title
-                      </label>
-                      <input
-                        type="text"
-                        name="title"
-                        value={editFields.title}
-                        onChange={handleInputChange}
-                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                        placeholder="Card title"
-                      />
-                    </div>
-
-                    {/* Description textarea */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Description
-                      </label>
-                      <textarea
-                        ref={textareaRef}
-                        name="description"
-                        value={editFields.description}
-                        onChange={handleInputChange}
-                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 min-h-[120px]"
-                        placeholder="Add a more detailed description..."
-                        rows={4}
-                      />
-                    </div>
-
-                    {/* Status selection */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Status
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {statusOptions.map(option => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => handleStatusChange(option.value)}
-                            className={`px-3 py-1.5 rounded-md text-sm ${editFields.status === option.value
-                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-2 border-blue-500'
-                              : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'
-                              }`}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Priority selection */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Priority
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {priorityOptions.map(option => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => handlePriorityChange(option.value)}
-                            className={`px-3 py-1.5 rounded-md text-sm ${editFields.priority_level === option.value
-                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-2 border-blue-500'
-                              : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'
-                              }`}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Difficulty selection */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Difficulty
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {difficultyOptions.map(option => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => handleDifficultyChange(option.value)}
-                            className={`px-3 py-1.5 rounded-md text-sm ${editFields.difficulty_level === option.value
-                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-2 border-blue-500'
-                              : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'
-                              }`}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Assignee selection */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Assignee
-                      </label>
-                      <select
-                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                        value={editFields.assigned_to || 'none'}
-                        onChange={(e) => handleAssigneeChange(e.target.value)}
+                {/* Description */}
+                <div className="mb-6 dark:bg-gray-800 rounded-md">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center">
+                      <FiAlertCircle className="mr-1" /> Description
+                    </h3>
+                    {canModify && !isEditingDescription && (
+                      <button
+                        onClick={() => setIsEditingDescription(true)}
+                        className="p-1 text-xs text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
+                        title="Edit description"
                       >
-                        <option value="none">None</option>
-                        {boardMembers.map(member => (
-                          <option key={member.id} value={member.id}>
-                            {member.username || member.email}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {/* Card title */}
-                    <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
-                      {cardData?.title}
-                    </h1>
-
-                    {/* Description */}
-                    <div className="mb-6 dark:bg-gray-800 rounded-md">
-                      <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
-                        <FiAlertCircle className="mr-1" /> Description
-                      </h3>
-                      <div className="p-3 bg-gray-50 dark:bg-gray-750 rounded-md text-gray-700 dark:text-gray-300 text-sm whitespace-pre-wrap">
-                        {cardData?.description || <span className="text-gray-400 italic">No description provided</span>}
+                        <FiEdit className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  
+                  {isEditingDescription && canModify ? (
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-md p-2">
+                      <textarea
+                        ref={descriptionTextareaRef}
+                        className="w-full p-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 min-h-[100px] resize-none"
+                        placeholder="Add a description..."
+                        value={descriptionText}
+                        onChange={handleDescriptionChange}
+                        disabled={loading}
+                        autoFocus
+                      />
+                      <div className="mt-2 flex justify-end space-x-2">
+                        <button
+                          className="px-2 py-1 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+                          onClick={handleDescriptionCancel}
+                          disabled={loading}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition-colors disabled:opacity-50"
+                          onClick={handleDescriptionSubmit}
+                          disabled={loading}
+                        >
+                          {loading ? (
+                            <span className="flex items-center">
+                              <svg className="animate-spin -ml-1 mr-1 h-3 w-3 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Saving...
+                            </span>
+                          ) : "Save"}
+                        </button>
                       </div>
                     </div>
-                  </>
-                )}
+                  ) : (
+                    <div 
+                      className={`p-3 bg-gray-50 dark:bg-gray-800 rounded-md text-gray-700 dark:text-gray-300 text-sm whitespace-pre-wrap ${
+                        canModify ? 'hover:bg-gray-100 dark:hover:bg-gray-725 cursor-pointer' : ''
+                      }`}
+                      onClick={() => canModify && !isEditingDescription && setIsEditingDescription(true)}
+                    >
+                      {cardData?.description ? 
+                        cardData.description : 
+                        <span className="text-gray-400 italic">No description provided. Click to add.</span>}
+                    </div>
+                  )}
+                </div>
 
                 {/* Attachments section */}
-                {/* Attachments Section - Enhanced */}
                 <div className="mt-4">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center">
@@ -1149,123 +972,111 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
 
               {/* Right Sidebar */}
               <div className="w-full md:w-72 p-4 border-t md:border-t-0 md:border-l border-gray-200 dark:border-gray-700 overflow-y-auto">
-                {editMode ? (
-                  <>
-                    {/* Cover Image Button trong Edit Mode */}
-                    {canModify && (
-                      <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                          Cover Image
-                        </label>
-                        <button
-                          onClick={() => setShowCoverPicker(true)}
-                          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 text-sm flex items-center justify-center"
-                        >
-                          <FiImage className="w-4 h-4 mr-2" />
-                          {cardData?.cover_img ? 'Change Cover' : 'Add Cover'}
-                        </button>
-                      </div>
-                    )}
+                <div className="space-y-4">
 
-                    {/* Các phần khác trong edit mode - giữ nguyên */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Due Date
-                      </label>
-                      <input
-                        type="date"
-                        name="due_date"
-                        value={editFields.due_date}
-                        onChange={handleInputChange}
-                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </div>
-
-                    {/* Assignee selection */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Assignee
-                      </label>
+                  {/* Assignee */}
+                  <div>
+                    <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Assignee</h4>
+                    {canModify ? (
                       <select
-                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                        value={editFields.assigned_to || 'none'}
-                        onChange={(e) => handleAssigneeChange(e.target.value)}
+                        className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                        value={cardData?.assigned_to || 'none'}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          const assignedTo = value === 'none' ? null : parseInt(value, 10);
+                          
+                          if (assignedTo === cardData?.assigned_to) return;
+                          
+                          setLoading(true);
+                          const cardUpdated = { ...cardData, assigned_to: assignedTo };
+                          api.put(`/cards/${card.id}`, cardUpdated)
+                          .then(response => {
+                            setCardData(cardUpdated);
+                            // if (onUpdate) {
+                            //   onUpdate(response.data.card);
+                            // }
+                            // if (cardData && cardData.board_id) {
+                            //   emitBoardChange(cardData.board_id, 'card_updated', response.data.card);
+                            // }
+                          })
+                          .catch(error => {
+                            console.error('Failed to update assignee', error);
+                          })
+                          .finally(() => {
+                            setLoading(false);
+                          });
+                        }}
+                        disabled={loading}
                       >
-                        <option value="none">None</option>
+                        <option value="none">Unassigned</option>
                         {boardMembers.map(member => (
-                          <option key={member.id} value={member.id}>
+                          <option key={member.user_id} value={member.user_id}>
                             {member.username || member.email}
                           </option>
                         ))}
                       </select>
-                    </div>
+                    ) : (
+                      cardData?.assigned_to ? (
+                        <div className="flex items-center">
+                          <div className="w-7 h-7 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-200 text-xs font-medium mr-2">
+                            {cardData.assigned_to_username ? cardData.assigned_to_username.charAt(0).toUpperCase() : 'U'}
+                          </div>
+                          <span className="text-sm text-gray-800 dark:text-gray-200">
+                            {cardData.assigned_to_username || 'Unknown User'}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-500 dark:text-gray-400">Unassigned</span>
+                      )
+                    )}
+                  </div>
 
-                    {/* Priority selection */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Priority
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {priorityOptions.map(option => (
+                  {/* Due Date */}
+                  <div>
+                    <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Due Date</h4>
+                    {canModify ? (
+                      <div className="flex items-center">
+                        <input
+                          type="date"
+                          className="w-full p-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                          value={cardData?.due_date ? new Date(cardData.due_date).toISOString().split('T')[0] : ''}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            const dueDate = value ? new Date(value).toISOString() : null;
+                            
+                            if ((dueDate && cardData?.due_date && new Date(dueDate).getTime() === new Date(cardData.due_date).getTime()) || 
+                                (!dueDate && !cardData?.due_date)) {
+                              return;
+                            }
+                            
+                            setLoading(true);
+                            const cardUpdated = { ...cardData, due_date: dueDate };
+                            api.put(`/cards/${card.id}`, cardUpdated)
+                            .then(response => {
+                              setCardData(cardUpdated);
+                              // if (onUpdate) {
+                              //   onUpdate(response.data.card);
+                              // }
+                              // if (cardData && cardData.board_id) {
+                              //   emitBoardChange(cardData.board_id, 'card_updated', response.data.card);
+                              // }
+                            })
+                            .catch(error => {
+                              console.error('Failed to update due date', error);
+                            })
+                            .finally(() => {
+                              setLoading(false);
+                            });
+                          }}
+                          disabled={loading}
+                        />
+                        {cardData?.due_date && (
                           <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => handlePriorityChange(option.value)}
-                            className={`px-3 py-1.5 rounded-md text-sm ${editFields.priority_level === option.value
-                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-2 border-blue-500'
-                              : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'
-                              }`}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Difficulty selection */}
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                        Difficulty
-                      </label>
-                      <div className="flex flex-wrap gap-2">
-                        {difficultyOptions.map(option => (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => handleDifficultyChange(option.value)}
-                            className={`px-3 py-1.5 rounded-md text-sm ${editFields.difficulty_level === option.value
-                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 border-2 border-blue-500'
-                              : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600'
-                              }`}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    {/* Metadata display - giữ nguyên các phần hiện có */}
-                    <div className="space-y-4">
-
-                      {/* Assignee */}
-                      <div>
-                        <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Assignee</h4>
-                        {canModify ? (
-                          <select
-                            className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
-                            value={cardData?.assigned_to || 'none'}
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              const assignedTo = value === 'none' ? null : parseInt(value, 10);
-                              
-                              if (assignedTo === cardData?.assigned_to) return;
-                              
+                            onClick={() => {
                               setLoading(true);
                               api.put(`/cards/${card.id}`, {
                                 ...cardData,
-                                assigned_to: assignedTo
+                                due_date: null
                               })
                               .then(response => {
                                 setCardData(response.data.card);
@@ -1277,147 +1088,208 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                                 }
                               })
                               .catch(error => {
-                                console.error('Failed to update assignee', error);
+                                console.error('Failed to clear due date', error);
                               })
                               .finally(() => {
                                 setLoading(false);
                               });
                             }}
+                            className="ml-2 p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400"
+                            title="Clear due date"
                             disabled={loading}
                           >
-                            <option value="none">Unassigned</option>
-                            {boardMembers.map(member => (
-                              <option key={member.id} value={member.id}>
-                                {member.username || member.email}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          cardData?.assigned_to ? (
-                            <div className="flex items-center">
-                              <div className="w-7 h-7 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-gray-700 dark:text-gray-200 text-xs font-medium mr-2">
-                                {cardData.assigned_to_username ? cardData.assigned_to_username.charAt(0).toUpperCase() : 'U'}
-                              </div>
-                              <span className="text-sm text-gray-800 dark:text-gray-200">
-                                {cardData.assigned_to_username || 'Unknown User'}
-                              </span>
+                            <FiX className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      cardData?.due_date ? (
+                        <div className="flex items-center text-sm">
+                          <FiClock className="mr-1 text-gray-500 dark:text-gray-400" />
+                          <span className="text-gray-800 dark:text-gray-200">
+                            {format(new Date(cardData.due_date), 'MMM d, yyyy')}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-gray-500 dark:text-gray-400">None</span>
+                      )
+                    )}
+                  </div>
+                  
+
+                  <div className="flex justify-between gap-4">
+                    {/* Priority */}
+                    <div className="">
+                      <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Priority</h4>
+                      {canModify ? (
+                        <div className="relative" ref={priorityMenuRef}>
+                          <button
+                            onClick={() => setIsPriorityMenuOpen(!isPriorityMenuOpen)}
+                            className={`h-6 px-2.5 py-0.5 text-xs rounded flex items-center justify-between w-20 ${priorityInfo.color} ${canModify ? 'hover:brightness-110 cursor-pointer' : 'cursor-default'} shadow-sm`}
+                            disabled={loading}
+                          >
+                            <span>{priorityInfo.name}</span>
+                            {canModify && <FiChevronDown className="ml-1 w-3 h-3" />}
+                          </button>
+
+                          {isPriorityMenuOpen && (
+                            <div className="fixed w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50"
+                                  style={{
+                                    top: priorityMenuRef.current ? priorityMenuRef.current.getBoundingClientRect().bottom + 4 : 'auto',
+                                    left: priorityMenuRef.current ? priorityMenuRef.current.getBoundingClientRect().left : 'auto'
+                                  }}>
+                              {priorityOptions.map(option => {
+                                const optionInfo = getPriorityInfo(option.value);
+                                return (
+                                  <button
+                                    key={option.value}
+                                    type="button"
+                                    onClick={() => {
+                                      const priorityLevel = parseInt(option.value, 10);
+                                      
+                                      if (priorityLevel === cardData?.priority_level) {
+                                        setIsPriorityMenuOpen(false);
+                                        return;
+                                      }
+                                      
+                                      setLoading(true);
+                                      const cardUpdated = { ...cardData, priority_level: priorityLevel };
+                                      api.put(`/cards/${card.id}`, cardUpdated)
+                                        .then(response => {
+                                          setCardData(cardUpdated);
+                                        })
+                                        .catch(error => {
+                                          console.error('Failed to update priority', error);
+                                        })
+                                        .finally(() => {
+                                          setIsPriorityMenuOpen(false);
+                                          setLoading(false);
+                                        });
+                                    }}
+                                    className={`w-full text-left px-3 py-1.5 text-sm flex items-center ${
+                                      cardData?.priority_level === option.value
+                                        ? 'bg-gray-100 dark:bg-gray-700'
+                                        : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                                    }`}
+                                  >
+                                    <span className={`w-2 h-2 rounded-full mr-2 ${optionInfo.color.replace('text-', 'bg-')}`}></span>
+                                    {option.label}
+                                  </button>
+                                );
+                              })}
                             </div>
-                          ) : (
-                            <span className="text-sm text-gray-500 dark:text-gray-400">Unassigned</span>
-                          )
-                        )}
-                      </div>
-
-                      {/* Due Date */}
-                      <div>
-                        <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Due Date</h4>
-                        {cardData?.due_date ? (
-                          <div className="flex items-center text-sm">
-                            <FiClock className="mr-1 text-gray-500 dark:text-gray-400" />
-                            <span className="text-gray-800 dark:text-gray-200">
-                              {format(new Date(cardData.due_date), 'MMM d, yyyy')}
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-gray-500 dark:text-gray-400">None</span>
-                        )}
-                      </div>
-                      
-
-                      <div className="flex justify-between gap-4">
-                        {/* Priority */}
-                        <div>
-                          <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Priority</h4>
-                          <div className={`inline-block px-2.5 py-0.5 text-xs rounded ${priorityInfo.color}`}>
-                            {priorityInfo.name}
-                          </div>
-                        </div>
-
-                        {/* Difficulty */}
-                        <div>
-                          <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Difficulty</h4>
-                          <div className={`inline-block px-2.5 py-0.5 text-xs rounded ${difficultyInfo.color}`}>
-                            {difficultyInfo.name}
-                          </div>
-                        </div>
-                      </div>
-                      {/* Created Info */}
-                      <div>
-                        <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Created</h4>
-                        <div className="text-sm text-gray-700 dark:text-gray-300">
-                          {cardData?.created_at && format(new Date(cardData.created_at), 'MMM d, yyyy')}
-                          {cardData?.created_by_username && (
-                            <span className="block text-gray-500 dark:text-gray-400 text-xs mt-0.5">
-                              by {cardData.created_by_username}
-                            </span>
                           )}
                         </div>
-                      </div>
-
-                      {/* Labels */}
-                      {cardData?.labels && cardData.labels.length > 0 && (
-                        <div>
-                          <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">
-                            Labels
-                          </h4>
-                          <div className="flex flex-wrap gap-1">
-                            {cardData.labels.map(label => (
-                              <span
-                                key={label.id}
-                                className="px-2 py-0.5 text-xs rounded-full"
-                                style={{ backgroundColor: label.color, color: '#fff' }}
-                              >
-                                {label.name}
-                              </span>
-                            ))}
-                          </div>
+                      ) : (
+                        <div className={`inline-block px-2.5 py-0.5 text-xs rounded ${priorityInfo.color}`}>
+                          {priorityInfo.name}
                         </div>
                       )}
                     </div>
-                  </>
-                )}
-              </div>
-            </div>
 
-            {/* Footer action buttons - giữ nguyên */}
-            <div className="border-t border-gray-200 dark:border-gray-700 p-4 flex justify-between">
-              {editMode ? (
-                <>
-                  <button
-                    onClick={() => setEditMode(false)}
-                    className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-                    disabled={loading}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSave}
-                    className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors flex items-center"
-                    disabled={loading}
-                  >
-                    {loading ? 'Saving...' : 'Save Changes'} <FiCheck className="ml-1" />
-                  </button>
-                </>
-              ) : (
-                <>
-                  {canModify && (
-                    <>
-                      <button
-                        onClick={handleDelete}
-                        className="px-4 py-2 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 rounded-md hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
-                      >
-                        Delete Card
-                      </button>
-                      <button
-                        onClick={() => setEditMode(true)}
-                        className="px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 transition-colors"
-                      >
-                        Edit Card
-                      </button>
-                    </>
+                    {/* Difficulty */}
+                    <div>
+                      <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Difficulty</h4>
+                      {canModify ? (
+                        <div className="relative" ref={difficultyMenuRef}>
+                          <button
+                            onClick={() => setIsDifficultyMenuOpen(!isDifficultyMenuOpen)}
+                            className={`h-6 px-2.5 py-0.5 text-xs rounded flex items-center justify-between w-20 ${difficultyInfo.color} ${canModify ? 'hover:brightness-110 cursor-pointer' : 'cursor-default'} shadow-sm`}
+                            disabled={loading}
+                          >
+                            <span>{difficultyInfo.name}</span>
+                            {canModify && <FiChevronDown className="ml-1 w-3 h-3" />}
+                          </button>
+
+                          {isDifficultyMenuOpen && (
+                            <div className="fixed w-40 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50"
+                                  style={{
+                                    top: difficultyMenuRef.current ? difficultyMenuRef.current.getBoundingClientRect().bottom + 4 : 'auto',
+                                    left: difficultyMenuRef.current ? difficultyMenuRef.current.getBoundingClientRect().left : 'auto'
+                                  }}>
+                              {difficultyOptions.map(option => {
+                                const optionInfo = getDifficultyInfo(option.value);
+                                return (
+                                  <button
+                                    key={option.value}
+                                    type="button"
+                                    onClick={() => {
+                                      const difficultyLevel = parseInt(option.value, 10);
+                                      
+                                      if (difficultyLevel === cardData?.difficulty_level) {
+                                        setIsDifficultyMenuOpen(false);
+                                        return;
+                                      }
+                                      
+                                      setLoading(true);
+                                      const cardUpdated = { ...cardData, difficulty_level: difficultyLevel };
+                                      api.put(`/cards/${card.id}`, cardUpdated)
+                                        .then(response => {
+                                          setCardData(cardUpdated);
+                                        })
+                                        .catch(error => {
+                                          console.error('Failed to update difficulty', error);
+                                        })
+                                        .finally(() => {
+                                          setIsDifficultyMenuOpen(false);
+                                          setLoading(false);
+                                        });
+                                    }}
+                                    className={`w-full text-left px-3 py-1.5 text-sm flex items-center ${
+                                      cardData?.difficulty_level === option.value
+                                        ? 'bg-gray-100 dark:bg-gray-700'
+                                        : 'hover:bg-gray-50 dark:hover:bg-gray-700'
+                                    }`}
+                                  >
+                                    <span className={`w-2 h-2 rounded-full mr-2 ${optionInfo.color.replace('text-', 'bg-')}`}></span>
+                                    {option.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className={`inline-block px-2.5 py-0.5 text-xs rounded ${difficultyInfo.color}`}>
+                          {difficultyInfo.name}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Created Info */}
+                  <div>
+                    <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">Created</h4>
+                    <div className="text-sm text-gray-700 dark:text-gray-300">
+                      {cardData?.created_at && format(new Date(cardData.created_at), 'MMM d, yyyy')}
+                      {cardData?.created_by_username && (
+                        <span className="block text-gray-500 dark:text-gray-400 text-xs mt-0.5">
+                          by {cardData.created_by_username}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Labels */}
+                  {cardData?.labels && cardData.labels.length > 0 && (
+                    <div>
+                      <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">
+                        Labels
+                      </h4>
+                      <div className="flex flex-wrap gap-1">
+                        {cardData.labels.map(label => (
+                          <span
+                            key={label.id}
+                            className="px-2 py-0.5 text-xs rounded-full"
+                            style={{ backgroundColor: label.color, color: '#fff' }}
+                          >
+                            {label.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   )}
-                </>
-              )}
+                </div>
+              </div>
             </div>
           </>
         )}
