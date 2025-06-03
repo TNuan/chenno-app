@@ -8,6 +8,7 @@ import { emitBoardChange } from '../../services/socket';
 import CoverImagePicker from './CoverImagePicker';
 import AttachmentUploadModal from './AttachmentUploadModal';
 import LabelDisplay from './LabelDisplay';
+import CardActions from './CardActions';
 
 // Hàm hỗ trợ để lấy tên và màu cho trạng thái
 const getStatusInfo = (status) => {
@@ -730,6 +731,17 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
               
               {/* Bên phải: Action buttons */}
               <div className="flex items-center gap-2 flex-shrink-0">
+                {/* Action Button & Dropdown */}
+                {canModify && (
+                  <CardActions
+                    cardData={cardData}
+                    onClose={onClose}
+                    onUpdate={onUpdate}
+                    hasCover={isImageCover || isColorCover}
+                    canModify={canModify}
+                  />
+                )}
+                
                 {/* Add/Change Cover Button */}
                 {canModify && (
                   <button
