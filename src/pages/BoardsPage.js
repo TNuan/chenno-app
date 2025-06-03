@@ -136,7 +136,7 @@ const Board = () => {
       // Listen for board changes
       socket.on('board_updated', (data) => {
         console.log('Board update received:', data);
-        console.log('Current board:', board);
+        console.log('Current board:', data.boardId);
         if (data.boardId == boardId && isMounted) {
           // Update board data based on change type
           if (data.changeType === 'column_order') {
@@ -214,6 +214,21 @@ const Board = () => {
                   return {
                     ...col,
                     cards: [...col.cards, data.payload]
+                  };
+                }
+                return col;
+              })
+            }));
+          } else if (data.changeType === 'card_remove') { 
+            console.log('Card removed:', data.payload);
+            // Handle card removal
+            setBoard(prevBoard => ({
+              ...prevBoard,
+              columns: prevBoard.columns.map(col => {
+                if (col.id === data.payload.column_id) {
+                  return {
+                    ...col,
+                    cards: col.cards.filter(card => card.id !== data.payload.card_id)
                   };
                 }
                 return col;
