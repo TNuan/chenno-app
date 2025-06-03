@@ -101,16 +101,16 @@ const Card = ({ card, index, canModify = true, onClick, boardMembers }) => {
 
           {/* Card Labels */}
           {card.labels && card.labels.length > 0 && (
-            <div className="flex flex-wrap gap-1 mb-2">
-              {card.labels.slice(0, 2).map(label => (
+            <div className="flex flex-wrap gap-1 mt-2 mx-2">
+              {card.labels.slice(0, 5).map(label => (
                 <span
                   key={label.id}
-                  className="w-6 h-1.5 rounded-sm"
+                  className="w-10 h-1.5 rounded-sm"
                   style={{ backgroundColor: label.color }}
                 />
               ))}
-              {card.labels.length > 2 && (
-                <span className="w-6 h-1.5 rounded-sm bg-gray-300 dark:bg-gray-500" />
+              {card.labels.length > 5 && (
+                <span className="w-8 h-1.5 rounded-sm bg-gray-300 dark:bg-gray-500" />
               )}
             </div>
           )}

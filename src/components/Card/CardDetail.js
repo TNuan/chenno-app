@@ -7,6 +7,7 @@ import { useAlert } from '../../contexts/AlertContext';
 import { emitBoardChange } from '../../services/socket';
 import CoverImagePicker from './CoverImagePicker';
 import AttachmentUploadModal from './AttachmentUploadModal';
+import LabelDisplay from './LabelDisplay';
 
 // Hàm hỗ trợ để lấy tên và màu cho trạng thái
 const getStatusInfo = (status) => {
@@ -437,23 +438,24 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
     setLoading(true);
     try {
       const updatedCard = {
+        ...cardData,
         cover_img: coverData ? coverData.value : null // Lưu trực tiếp value (URL hoặc màu)
       };
 
       const response = await api.put(`/cards/${card.id}`, updatedCard);
 
       // Update local state
-      setCardData(response.data.card);
+      setCardData(updatedCard);
 
       // Notify parent component
       if (onUpdate) {
-        onUpdate(response.data.card);
+        onUpdate(updatedCard);
       }
 
       // Emit socket event for real-time updates
-      if (cardData && cardData.board_id) {
-        emitBoardChange(cardData.board_id, 'card_updated', response.data.card);
-      }
+      // if (cardData && cardData.board_id) {
+      //   emitBoardChange(cardData.board_id, 'card_updated', response.data.card);
+      // }
     } catch (error) {
       console.error('Failed to update card cover', error);
     } finally {
@@ -1270,24 +1272,20 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                   </div>
 
                   {/* Labels */}
-                  {cardData?.labels && cardData.labels.length > 0 && (
-                    <div>
-                      <h4 className="text-xs uppercase text-gray-500 dark:text-gray-400 font-medium mb-1">
-                        Labels
-                      </h4>
-                      <div className="flex flex-wrap gap-1">
-                        {cardData.labels.map(label => (
-                          <span
-                            key={label.id}
-                            className="px-2 py-0.5 text-xs rounded-full"
-                            style={{ backgroundColor: label.color, color: '#fff' }}
-                          >
-                            {label.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  <LabelDisplay
+                    cardData={cardData}
+                    boardId={cardData?.board_id}
+                    canModify={canModify}
+                    onUpdate={(updatedCard) => {
+                      setCardData(updatedCard);
+                      if (onUpdate) {
+                        onUpdate(updatedCard);
+                      }
+                      if (updatedCard && updatedCard.board_id) {
+                        emitBoardChange(updatedCard.board_id, 'card_updated', updatedCard);
+                      }
+                    }}
+                  />
                 </div>
               </div>
             </div>
