@@ -43,264 +43,169 @@ const Board = () => {
   // Setup socket connection - Cải thiện để tránh request nhiều lần
   useEffect(() => {
     let isMounted = true;
-    let socketInstance = null;
 
     const initializeSocket = async () => {
-      try {
-        // Get or initialize socket
-        const socket = await getSocket();
+        try {
+            const socket = await getSocket();
+            if (!isMounted) return;
 
-        // Only proceed if component is still mounted
-        if (!isMounted) return;
-
-        // Store socket in ref for later use
-        socketRef.current = socket;
-
-        // Setup listeners
-        setupSocketListeners(socket);
-      } catch (error) {
-        console.error('Failed to initialize socket:', error);
-      }
+            socketRef.current = socket;
+            setupSocketListeners(socket);
+        } catch (error) {
+            console.error('Failed to initialize socket:', error);
+        }
     };
 
-    // Hàm thiết lập các listener cho socket
     function setupSocketListeners(socket) {
-      console.log('Setting up socket listeners for board:', boardId);
+        console.log('Setting up socket listeners for board:', boardId);
 
-      // Clear existing listeners first to prevent duplicates
-      socket.off('online_users');
-      socket.off('user_joined');
-      socket.off('user_left');
-      socket.off('board_updated');
-      socket.off('pong_board');
+        // Clear existing listeners
+        socket.off('online_users');
+        socket.off('user_joined');
+        socket.off('user_left');
+        socket.off('board_updated');
+        socket.off('pong_board');
 
-      // Join board when socket is ready - only once
-      if (socket.connected) {
-        console.log('Socket already connected, joining board immediately');
-        (async () => {
-          await joinBoard(boardId);
-          // Request online users ONCE after joining
-          await requestOnlineUsers(boardId);
-
-          // Không cần polling nữa, chỉ đánh dấu là đã yêu cầu
-          if (isMounted && !usersPollingRef.current) {
-            usersPollingRef.current = true;
-          }
-        })();
-      } else {
-        console.log('Socket not connected, waiting for connection');
-
-        // Only add connect listener if not already connected
-        const connectHandler = async () => {
-          console.log('Socket connected, now joining board');
-          socket.off('connect', connectHandler); // Remove listener after first connection
-
-          await joinBoard(boardId);
-          await requestOnlineUsers(boardId);
-
-          // Không cần polling nữa, chỉ đánh dấu là đã yêu cầu
-          if (isMounted && !usersPollingRef.current) {
-            usersPollingRef.current = true;
-          }
-        };
-
-        socket.on('connect', connectHandler);
-      }
-
-      // Listen for online users updates
-      socket.on('online_users', (data) => {
-        console.log('Online users received:', data);
-        if (data.boardId === boardId && isMounted) {
-          setOnlineUsers(data.users || []);
-        }
-      });
-
-      // Listen for user join events - Chỉ lấy thông tin khi có người tham gia
-      socket.on('user_joined', (data) => {
-        console.log('User joined:', data);
-        if (data.boardId === boardId && data.user) {
-          // Yêu cầu danh sách online users cập nhật khi có người tham gia
-          requestOnlineUsers(boardId);
-        }
-      });
-
-      // Listen for user left events - Chỉ lấy thông tin khi có người rời đi
-      socket.on('user_left', (data) => {
-        console.log('User left:', data);
-        if (data.boardId === boardId && data.userId) {
-          // Yêu cầu danh sách online users cập nhật khi có người rời đi
-          requestOnlineUsers(boardId);
-        }
-      });
-
-      // Listen for board changes
-      socket.on('board_updated', (data) => {
-        console.log('Board update received:', data);
-        console.log('Current board:', data.boardId);
-        if (data.boardId == boardId && isMounted) {
-          // Update board data based on change type
-          if (data.changeType === 'column_order') {
-            console.log('Updating column order:', data.payload);
-            // Handle column reordering
-            setBoard(prevBoard => ({
-              ...prevBoard,
-              columns: data.payload
-            }));
-          } else if (data.changeType === 'card_move') {
-            console.log('Moving card:', data.payload);
-            // Handle card movement
-            const { sourceColumnId, destinationColumnId, newColumns } = data.payload;
-            setBoard(prevBoard => {
-              return { ...prevBoard, columns: newColumns };
-            });
-          } else if (data.changeType === 'column_update') {
-            // Handle column update (title change, etc)
-            setBoard(prevBoard => {
-              const updatedColumns = prevBoard.columns.map(col => {
-                if (col.id === data.payload.id) {
-                  return data.payload;
+        // Join board and request online users
+        if (socket.connected) {
+            console.log('Socket already connected, joining board immediately');
+            (async () => {
+                await joinBoard(boardId);
+                await requestOnlineUsers(boardId);
+                if (isMounted && !usersPollingRef.current) {
+                    usersPollingRef.current = true;
                 }
-                return col;
-              });
-              return { ...prevBoard, columns: updatedColumns };
-            });
-          } else if (data.changeType === 'column_add') {
-            // Handle new column
-            setBoard(prevBoard => ({
-              ...prevBoard,
-              columns: [...prevBoard.columns, data.payload]
-            }));
-          } else if (data.changeType === 'column_delete') {
-            // Handle column deletion 
-            setBoard(prevBoard => ({
-              ...prevBoard,
-              columns: prevBoard.columns.filter(col => col.id !== data.payload)
-            }));
-          } else if (data.changeType === 'board_update') {
-            // Handle board updates (title, visibility, etc)
-            setBoard(prevBoard => {
-              const updatedBoard = {
-                ...prevBoard,
-                ...data.payload
-              };
-
-              // Kiểm tra nếu board chuyển sang private và người dùng không có quyền truy cập
-              if (
-                data.payload.visibility === 0 &&
-                (!updatedBoard.user_role || updatedBoard.user_role === '')
-              ) {
-                // Sử dụng alert toàn cục thay vì state local
-                showAccessDenied(
-                  'Bảng này đã được chuyển sang chế độ riêng tư và bạn không còn quyền truy cập.',
-                  () => navigate('/')
-                );
-              }
-
-              return updatedBoard;
-            });
-          } else if (data.changeType === 'board_update') {
-            // Handle board updates (title, visibility, etc)
-            setBoard(prevBoard => ({
-              ...prevBoard,
-              ...data.payload
-            }));
-          } else if (data.changeType === 'card_created') {
-            console.log('New card created:', data.payload);
-            // Handle new card creation
-            setBoard(prevBoard => ({
-              ...prevBoard,
-              columns: prevBoard.columns.map(col => {
-                if (col.id === data.payload.column_id) {
-                  return {
-                    ...col,
-                    cards: [...col.cards, data.payload]
-                  };
+            })();
+        } else {
+            const connectHandler = async () => {
+                console.log('Socket connected, now joining board');
+                socket.off('connect', connectHandler);
+                await joinBoard(boardId);
+                await requestOnlineUsers(boardId);
+                if (isMounted && !usersPollingRef.current) {
+                    usersPollingRef.current = true;
                 }
-                return col;
-              })
-            }));
-          } else if (data.changeType === 'card_remove') { 
-            console.log('Card removed:', data.payload);
-            // Handle card removal
-            setBoard(prevBoard => ({
-              ...prevBoard,
-              columns: prevBoard.columns.map(col => {
-                if (col.id === data.payload.column_id) {
-                  return {
-                    ...col,
-                    cards: col.cards.filter(card => card.id !== data.payload.card_id)
-                  };
-                }
-                return col;
-              })
-            }));
-          } else if (data.changeType === 'add_member') {
-            console.log('New member added:', data.payload);
-            // Handle new member addition
-
-            setBoard(prevBoard => {
-              const updatedBoard = {
-                ...prevBoard,
-                members: [...prevBoard.members, data.payload]
-              }
-
-              if (data.payload.user_id == updatedBoard.user_getting) {
-                // Nếu người dùng mới được thêm là người đang xem bảng
-                showAccessDenied(
-                  'Bạn được thay đổi quyền đối với bảng này. Reload lại ngay bây giờ.',
-                  () => window.location.reload()
-                );
-              }
-              return updatedBoard;
-            });
-          } else if (data.changeType === 'remove_member') {
-            console.log('Member removed:', data.payload);
-            // Handle member removal
-            setBoard(prevBoard => {
-              const updatedMembers = prevBoard.members.filter(member => member.id !== data.payload.user_id);
-              const updatedBoard = { ...prevBoard, members: updatedMembers };
-              // Nếu người dùng bị xóa là người đang xem bảng
-              if (data.payload.user_id == updatedBoard.user_getting) {
-                // Sử dụng alert toàn cục thay vì state local
-                showAccessDenied(
-                  'Bạn được thay đổi quyền đối với bảng này. Reload lại ngay bây giờ.',
-                  () => window.location.reload()
-                );
-              }
-              return updatedBoard;
-            });
-          }
-
+            };
+            socket.on('connect', connectHandler);
         }
-      });
 
-      // Gửi ping kiểm tra để đảm bảo kết nối hai chiều - Chỉ gửi một lần
-      socket.emit('ping_board', { boardId, message: 'Checking connection' });
-      socket.on('pong_board', (data) => {
-        console.log('Received pong from server:', data);
-      });
+        // Online users management
+        socket.on('online_users', (data) => {
+            console.log('Online users received:', data);
+            if (data.boardId === boardId && isMounted) {
+                setOnlineUsers(data.users || []);
+            }
+        });
+
+        socket.on('user_joined', (data) => {
+            console.log('User joined:', data);
+            if (data.boardId === boardId && data.user) {
+                requestOnlineUsers(boardId);
+            }
+        });
+
+        socket.on('user_left', (data) => {
+            console.log('User left:', data);
+            if (data.boardId === boardId && data.userId) {
+                requestOnlineUsers(boardId);
+            }
+        });
+
+        // Board-level updates only
+        socket.on('board_updated', (data) => {
+            console.log('BoardsPage received board update:', data);
+            
+            if (data.boardId != boardId || !isMounted) return;
+
+            switch (data.changeType) {
+                case 'board_update':
+                    console.log('Updating board info:', data.payload);
+                    setBoard(prevBoard => {
+                        const updatedBoard = {
+                            ...prevBoard,
+                            ...data.payload
+                        };
+
+                        // Check for privacy changes
+                        if (
+                            data.payload.visibility === 0 &&
+                            (!updatedBoard.user_role || updatedBoard.user_role === '')
+                        ) {
+                            showAccessDenied(
+                                'Bảng này đã được chuyển sang chế độ riêng tư và bạn không còn quyền truy cập.',
+                                () => navigate('/')
+                            );
+                        }
+
+                        return updatedBoard;
+                    });
+                    break;
+
+                case 'add_member':
+                    console.log('New member added:', data.payload);
+                    setBoard(prevBoard => {
+                        const updatedBoard = {
+                            ...prevBoard,
+                            members: [...prevBoard.members, data.payload]
+                        };
+
+                        if (data.payload.user_id == updatedBoard.user_getting) {
+                            showAccessDenied(
+                                'Bạn được thay đổi quyền đối với bảng này. Reload lại ngay bây giờ.',
+                                () => window.location.reload()
+                            );
+                        }
+                        return updatedBoard;
+                    });
+                    break;
+
+                case 'remove_member':
+                    console.log('Member removed:', data.payload);
+                    setBoard(prevBoard => {
+                        const updatedMembers = prevBoard.members.filter(
+                            member => member.id !== data.payload.user_id
+                        );
+                        const updatedBoard = { ...prevBoard, members: updatedMembers };
+                        
+                        if (data.payload.user_id == updatedBoard.user_getting) {
+                            showAccessDenied(
+                                'Bạn được thay đổi quyền đối với bảng này. Reload lại ngay bây giờ.',
+                                () => window.location.reload()
+                            );
+                        }
+                        return updatedBoard;
+                    });
+                    break;
+
+                default:
+                    // Let BoardContent handle column/card events
+                    break;
+            }
+        });
+
+        // Connection check
+        socket.emit('ping_board', { boardId, message: 'Checking connection' });
+        socket.on('pong_board', (data) => {
+            console.log('Received pong from server:', data);
+        });
     }
 
-    // Start the initialization process - Only once
     initializeSocket();
 
-    // Cleanup on unmount
     return () => {
-      isMounted = false;
-      console.log('Cleaning up socket listeners for board:', boardId);
-      if (socketRef.current) {
-        leaveBoard(boardId);
-        socketRef.current.off('online_users');
-        socketRef.current.off('user_joined');
-        socketRef.current.off('user_left');
-        socketRef.current.off('board_updated');
-        socketRef.current.off('pong_board');
-      }
-
-      // Không cần dừng polling vì chúng ta không thực sự tạo interval
-      usersPollingRef.current = null;
+        isMounted = false;
+        console.log('Cleaning up socket listeners for board:', boardId);
+        if (socketRef.current) {
+            leaveBoard(boardId);
+            socketRef.current.off('online_users');
+            socketRef.current.off('user_joined');
+            socketRef.current.off('user_left');
+            socketRef.current.off('board_updated');
+            socketRef.current.off('pong_board');
+        }
+        usersPollingRef.current = null;
     };
-  }, [boardId]); // Chỉ phụ thuộc vào boardId
+}, [boardId]); // Chỉ phụ thuộc vào boardId
 
   const handleUpdateBoard = (updatedBoard) => {
     setBoard((prevBoard) => ({
