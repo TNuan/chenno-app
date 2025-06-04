@@ -4,6 +4,7 @@ import api from '../../services/api';
 import { emitBoardChange } from '../../services/socket';
 import { useAlert } from '../../contexts/AlertContext';
 import MoveCardModal from './MoveCardModal';
+import CopyCardModal from './CopyCardModal';
 
 const CardActions = ({ 
   cardData, 
@@ -21,6 +22,8 @@ const CardActions = ({
   
   // Thêm state cho modal move card
   const [showMoveCardModal, setShowMoveCardModal] = useState(false);
+  // Thêm state cho modal copy card
+  const [showCopyCardModal, setShowCopyCardModal] = useState(false);
 
   // Xử lý click outside cho dropdown
   useEffect(() => {
@@ -64,9 +67,22 @@ const CardActions = ({
   };
 
   const handleCopyCard = () => {
-    console.log("Copy card action triggered");
     setShowActionDropdown(false);
-    // Implement logic for copying card
+    setShowCopyCardModal(true);
+  };
+
+  const handleCopyCardComplete = (copiedCard, changedBoard) => {
+    // Nếu card được copy sang board khác, có thể thông báo cho user
+    if (changedBoard) {
+      // Card được copy sang board khác
+      console.log('Card copied to different board');
+    } else {
+      // Card được copy trong cùng board, cập nhật UI nếu cần
+      if (onUpdate) {
+        // Có thể emit event để refresh board data
+        console.log('Card copied to same board');
+      }
+    }
   };
 
   const handleToggleWatch = () => {
@@ -175,6 +191,14 @@ const CardActions = ({
         onClose={() => setShowMoveCardModal(false)}
         cardData={cardData}
         onMoveCard={handleMoveCardComplete}
+      />
+
+      {/* Copy Card Modal */}
+      <CopyCardModal
+        isOpen={showCopyCardModal}
+        onClose={() => setShowCopyCardModal(false)}
+        cardData={cardData}
+        onCopyCard={handleCopyCardComplete}
       />
     </>
   );

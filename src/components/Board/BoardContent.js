@@ -227,7 +227,7 @@ const BoardContent = ({ board, socketRef }) => {
             setShowAddColumn(false);
             
             // Emit new column via socket for real-time sync
-            emitBoardChange(board.id, 'column_add', newColumn);
+            // emitBoardChange(board.id, 'column_add', newColumn);
             
             toast.success('Đã thêm cột mới');
         } catch (err) {

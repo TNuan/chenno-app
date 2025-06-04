@@ -213,6 +213,11 @@ export const updateCard = async (cardId, data) => {
   return response.data;
 }
 
+export const copyCard = async (cardId, data) => {
+  const response = await api.post(`/cards/copy/${cardId}`, data);
+  return response.data;
+}
+
 // Api for Comments
 export const getCommentsByCard = async (cardId) => {
   const response = await api.get(`/comments/card/${cardId}`);
