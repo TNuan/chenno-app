@@ -40,6 +40,114 @@ const BoardContent = ({ board, socketRef }) => {
         }
     }, [board]);
 
+    // Setup socket listeners for columns and cards
+    useEffect(() => {
+        if (!socketRef || !board?.id) return;
+
+        const handleBoardUpdate = (data) => {
+            console.log('BoardContent received board update:', data);
+            
+            // Chỉ xử lý events liên quan đến board hiện tại
+            if (data.boardId != board.id) return;
+
+            switch (data.changeType) {
+                case 'column_order':
+                    console.log('Updating column order:', data.payload);
+                    setColumns(data.payload);
+                    break;
+
+                case 'column_add':
+                    console.log('Adding new column:', data.payload);
+                    setColumns(prevColumns => [
+                        ...prevColumns,
+                        {
+                            ...data.payload,
+                            cards: data.payload.cards || []
+                        }
+                    ]);
+                    break;
+
+                case 'column_update':
+                    console.log('Updating column:', data.payload);
+                    setColumns(prevColumns => 
+                        prevColumns.map(col => 
+                            col.id === data.payload.id ? data.payload : col
+                        )
+                    );
+                    break;
+
+                case 'column_delete':
+                    console.log('Deleting column:', data.payload);
+                    setColumns(prevColumns => 
+                        prevColumns.filter(col => col.id !== data.payload)
+                    );
+                    break;
+
+                case 'card_created':
+                    console.log('New card created:', data.payload);
+                    setColumns(prevColumns => 
+                        prevColumns.map(col => {
+                            if (col.id === data.payload.column_id) {
+                                return {
+                                    ...col,
+                                    cards: [...(col.cards || []), data.payload]
+                                };
+                            }
+                            return col;
+                        })
+                    );
+                    break;
+
+                case 'card_move':
+                    console.log('Moving card:', data.payload);
+                    const { sourceColumnId, destinationColumnId, newColumns } = data.payload;
+                    setColumns(newColumns);
+                    break;
+
+                case 'card_updated':
+                    console.log('Card updated:', data.payload);
+                    setColumns(prevColumns => 
+                        prevColumns.map(col => ({
+                            ...col,
+                            cards: col.cards.map(card => 
+                                card.id === data.payload.id ? data.payload : card
+                            )
+                        }))
+                    );
+                    break;
+
+                case 'card_remove':
+                    console.log('Card removed:', data.payload);
+                    setColumns(prevColumns => 
+                        prevColumns.map(col => {
+                            if (col.id === data.payload.column_id) {
+                                return {
+                                    ...col,
+                                    cards: col.cards.filter(card => card.id !== data.payload.card_id)
+                                };
+                            }
+                            return col;
+                        })
+                    );
+                    break;
+
+                default:
+                    // Ignore other change types
+                    break;
+            }
+        };
+
+        // Lắng nghe board_updated events
+        socketRef.on('board_updated', handleBoardUpdate);
+
+        // Cleanup
+        return () => {
+            if (socketRef) {
+                socketRef.off('board_updated', handleBoardUpdate);
+            }
+        };
+    }, [socketRef, board?.id]);
+
     // Xử lý drag end cho cả column và card
     const onDragEnd = (result) => {
         if (!canModify) {
@@ -165,6 +273,7 @@ const BoardContent = ({ board, socketRef }) => {
             return;
         }
 
+        // Optimistic update
         const newColumns = columns.map(col =>
             col.id === updatedColumn.id ? updatedColumn : col
         );
@@ -173,34 +282,14 @@ const BoardContent = ({ board, socketRef }) => {
         // Update column in backend
         updateColumn(updatedColumn.id, { title: updatedColumn.title })
             .then(() => {
-                // Emit column update via socket for real-time sync
-                emitBoardChange(board.id, 'column_update', updatedColumn);
+                // Socket event sẽ được emit từ backend
+                // emitBoardChange(board.id, 'column_update', updatedColumn);
             })
             .catch(err => {
                 console.error('Failed to update column:', err);
+                // Revert optimistic update
                 setColumns(columns);
             });
-    };
-
-    const handleAddCard = (card) => {
-        if (!canModify) {
-            toast.warning('Bạn không có quyền cập nhật bảng này');
-            return;
-        }
-
-        console.log('Adding card:', card);
-        const newColumns = columns.map(col => {
-            if (col.id === card.column_id) {
-                return {
-                    ...col,
-                    cards: [...col.cards, card]
-                };
-            }
-            return col;
-        });
-        setColumns(newColumns);
-        // Emit new card via socket for real-time sync
-        emitBoardChange(board.id, 'card_created', card);
     };
 
     // Handle add new column
@@ -221,25 +310,57 @@ const BoardContent = ({ board, socketRef }) => {
                 board_id: board.id,
             });
 
-            const newColumn = response.column;
+            const newColumn = {
+              ...response.column,
+              cards: []
+            };
+            
+            // Optimistic update
             setColumns([...columns, newColumn]);
             setNewColumnTitle('');
             setShowAddColumn(false);
             
-            // Emit new column via socket for real-time sync
+            // Socket event sẽ được emit từ backend
             // emitBoardChange(board.id, 'column_add', newColumn);
             
             toast.success('Đã thêm cột mới');
         } catch (err) {
             toast.error('Không thể thêm cột mới');
+            // Revert optimistic update nếu cần
         }
     };
 
+    const handleAddCard = (card) => {
+        if (!canModify) {
+            toast.warning('Bạn không có quyền cập nhật bảng này');
+            return;
+        }
+
+        console.log('Adding card:', card);
+        // Optimistic update
+        const newColumns = columns.map(col => {
+            if (col.id === card.column_id) {
+                return {
+                    ...col,
+                    cards: [...(col.cards || []), card]
+                };
+            }
+            return col;
+        });
+        setColumns(newColumns);
+        
+        // Socket event sẽ được emit từ backend
+        // emitBoardChange(board.id, 'card_created', card);
+    };
+
     const handleDeleteColumn = (columnId) => {
+        // Optimistic update
         const updatedColumns = columns.filter(col => col.id !== columnId);
         setColumns(updatedColumns);
-        emitBoardChange(board.id, 'column_delete', columnId);
-    }
+        
+        // Socket event sẽ được emit từ backend
+        // emitBoardChange(board.id, 'column_delete', columnId);
+    };
 
     if (!board) {
         return null;
