@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiX, FiUser, FiClock, FiTag, FiPaperclip, FiMessageSquare, FiAlertCircle, FiEdit, FiChevronDown, FiImage, FiUpload, FiDownload, FiTrash2, FiFile } from 'react-icons/fi';
+import { FiX, FiUser, FiClock, FiTag, FiPaperclip, FiMessageSquare, FiAlertCircle, FiEdit, FiChevronDown, FiImage, FiUpload, FiDownload, FiTrash2, FiFile, FiArchive } from 'react-icons/fi';
 import { format } from 'date-fns';
-import api, { uploadAttachment, getCardAttachments, deleteAttachment, downloadAttachment } from '../../services/api';
+import api, { uploadAttachment, getCardAttachments, deleteAttachment, downloadAttachment, unarchiveCard } from '../../services/api';
 import { createEditableProps } from '../../utils/contentEditable';
 import { useAlert } from '../../contexts/AlertContext';
 import { emitBoardChange } from '../../services/socket';
@@ -625,6 +625,25 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
     if (fileType?.includes('video/')) return '🎥';
     if (fileType?.includes('audio/')) return '🎵';
     return '📄';
+  };
+
+  const handleUnarchiveCard = async () => {
+    setLoading(true);
+    try {
+      await unarchiveCard(card.id);
+
+      // Notify parent component that card was unarchived
+      if (onUpdate) {
+        onUpdate(cardData, false); // false indicates card should be shown again
+      }
+      
+      onClose();
+    } catch (error) {
+      console.error('Failed to unarchive card', error);
+      alert('Unarchive card thất bại. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isOpen || !card) return null;

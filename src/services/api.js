@@ -218,6 +218,26 @@ export const copyCard = async (cardId, data) => {
   return response.data;
 }
 
+export const archiveCard = async (cardId) => {
+  const response = await api.patch(`/cards/${cardId}/archive`);
+  return response.data;
+};
+
+export const unarchiveCard = async (cardId) => {
+  const response = await api.patch(`/cards/${cardId}/unarchive`);
+  return response.data;
+};
+
+export const watchCard = async (cardId) => {
+  const response = await api.patch(`/cards/${cardId}/watch`);
+  return response.data;
+};
+
+export const unwatchCard = async (cardId) => {
+  const response = await api.patch(`/cards/${cardId}/unwatch`);
+  return response.data;
+};
+
 // Api for Comments
 export const getCommentsByCard = async (cardId) => {
   const response = await api.get(`/comments/card/${cardId}`);

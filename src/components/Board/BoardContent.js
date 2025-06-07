@@ -131,6 +131,36 @@ const BoardContent = ({ board, socketRef }) => {
                     );
                     break;
 
+                case 'card_archived':
+                    console.log('Card archived:', data.payload);
+                    setColumns(prevColumns => 
+                        prevColumns.map(col => {
+                            if (col.id === data.payload.column_id) {
+                                return {
+                                    ...col,
+                                    cards: col.cards.filter(card => card.id !== data.payload.card_id)
+                            };
+                        }
+                        return col;
+                    })
+                );
+                break;
+
+                case 'card_unarchived':
+                    console.log('Card unarchived:', data.payload);
+                    setColumns(prevColumns => 
+                        prevColumns.map(col => {
+                            if (col.id === data.payload.column_id) {
+                                return {
+                                    ...col,
+                                    cards: [...(col.cards || []), data.payload]
+                            };
+                        }
+                        return col;
+                    })
+                );
+                break;
+
                 default:
                     // Ignore other change types
                     break;
@@ -273,23 +303,15 @@ const BoardContent = ({ board, socketRef }) => {
             return;
         }
 
-        // Optimistic update
+        // Chỉ update state local, không gọi API ở đây nữa
+        // vì API đã được gọi từ Column component
         const newColumns = columns.map(col =>
             col.id === updatedColumn.id ? updatedColumn : col
         );
         setColumns(newColumns);
-
-        // Update column in backend
-        updateColumn(updatedColumn.id, { title: updatedColumn.title })
-            .then(() => {
-                // Socket event sẽ được emit từ backend
-                // emitBoardChange(board.id, 'column_update', updatedColumn);
-            })
-            .catch(err => {
-                console.error('Failed to update column:', err);
-                // Revert optimistic update
-                setColumns(columns);
-            });
+        
+        // Không cần gọi updateColumn API ở đây nữa
+        // vì đã được gọi từ Column component rồi
     };
 
     // Handle add new column
