@@ -5,7 +5,7 @@ import { useParams } from 'react-router-dom'
 import { createEditableProps } from '../../utils/contentEditable'
 import Card from '../Card/Card'
 import CardDetail from '../Card/CardDetail'
-import api, { createCard, deleteColumn } from '../../services/api'
+import api, { createCard, deleteColumn, updateColumn } from '../../services/api';
 import { useAlert } from '../../contexts/AlertContext' // Thêm import này
 import { toast } from 'react-toastify' // Nếu bạn đang sử dụng toast để thông báo
 
@@ -74,18 +74,45 @@ const Column = ({ column, index, onUpdateColumnState, onAddCard, onDeleteColumn,
     setColumnTitle(e.target.value)
   }
 
-  const handleColumnTitleSubmit = () => {
-    if (!canModifyBoolean) return
+  const handleColumnTitleSubmit = async () => {
+    if (!canModifyBoolean) return;
 
-    if (columnTitle.trim()) {
-      onUpdateColumnState({
-        ...column,
-        title: columnTitle.trim()
-      })
-    } else {
-      setColumnTitle(column.title)
+    if (!columnTitle.trim()) {
+        setColumnTitle(column.title);
+        setIsEditing(false);
+        return;
     }
-    setIsEditing(false)
+
+    // Nếu title không thay đổi thì không cần gọi API
+    if (columnTitle.trim() === column.title) {
+        setIsEditing(false);
+        return;
+    }
+
+    try {
+        setIsEditing(false); // Đóng edit mode ngay lập tức để UX mượt hơn
+        
+        // Gọi API update column trước
+        await updateColumn(column.id, { title: columnTitle.trim() });
+        
+        // Sau đó mới update state local
+        onUpdateColumnState({
+            ...column,
+            title: columnTitle.trim()
+        });
+        
+        // Socket event sẽ được emit từ backend, không cần emit ở đây
+        
+    } catch (error) {
+        console.error('Failed to update column title:', error);
+        
+        // Nếu API thất bại, revert lại title cũ
+        setColumnTitle(column.title);
+        toast.error('Không thể cập nhật tên cột. Vui lòng thử lại.');
+        
+        // Có thể mở lại edit mode nếu muốn
+        // setIsEditing(true);
+    }
   }
 
   const handleColumnTitleCancel = () => {

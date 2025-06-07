@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Draggable } from 'react-beautiful-dnd';
-import { FiClock, FiUser, FiPaperclip, FiMessageSquare, FiTag } from 'react-icons/fi';
+import { FiClock, FiUser, FiPaperclip, FiMessageSquare, FiTag, FiArchive } from 'react-icons/fi';
 import { isPast, isToday } from 'date-fns';
 
 // Hàm tính class cho thời hạn
@@ -74,16 +74,22 @@ const Card = ({ card, index, canModify = true, onClick, boardMembers }) => {
   // Đảm bảo canModify luôn là boolean
   const canModifyBoolean = Boolean(canModify);
 
+  // Không hiển thị archived cards trong board view
+  if (card.is_archived) {
+    return null;
+  }
+
   return (
     <Draggable 
       draggableId={cardId} 
       index={index}
-      isDragDisabled={!canModifyBoolean}
+      isDragDisabled={!canModifyBoolean || card.is_archived}
     >
       {(provided, snapshot) => (
         <div 
           className={`mb-2 bg-white dark:bg-gray-700 rounded-lg shadow-sm draggable-card
-            ${canModifyBoolean ? 'cursor-pointer' : ''} 
+            ${canModifyBoolean && !card.is_archived ? 'cursor-pointer' : ''} 
+            ${card.is_archived ? 'opacity-60' : ''} 
             hover:shadow-md transition-shadow border 
             ${snapshot.isDragging ? 'border-blue-400 shadow-md drag-card-preview' : 'border-transparent hover:border-gray-200 dark:hover:border-gray-600'}`}
           ref={provided.innerRef}
@@ -98,6 +104,14 @@ const Card = ({ card, index, canModify = true, onClick, boardMembers }) => {
         >
           {/* Cover Image */}
           <CardCoverImage coverImg={card.cover_img} />
+
+          {/* Archived indicator */}
+          {card.is_archived && (
+            <div className="flex items-center px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 border-b border-yellow-200 dark:border-yellow-800">
+              <FiArchive className="w-3 h-3 text-yellow-600 dark:text-yellow-400 mr-1" />
+              <span className="text-xs text-yellow-600 dark:text-yellow-400">Archived</span>
+            </div>
+          )}
 
           {/* Card Labels */}
           {card.labels && card.labels.length > 0 && (
