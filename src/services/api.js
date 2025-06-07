@@ -228,6 +228,16 @@ export const unarchiveCard = async (cardId) => {
   return response.data;
 };
 
+export const watchCard = async (cardId) => {
+  const response = await api.patch(`/cards/${cardId}/watch`);
+  return response.data;
+};
+
+export const unwatchCard = async (cardId) => {
+  const response = await api.patch(`/cards/${cardId}/unwatch`);
+  return response.data;
+};
+
 // Api for Comments
 export const getCommentsByCard = async (cardId) => {
   const response = await api.get(`/comments/card/${cardId}`);

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FiMoreHorizontal, FiMove, FiCopy, FiEye, FiArchive, FiTrash2 } from 'react-icons/fi';
-import { archiveCard } from '../../services/api';
+import { FiMoreHorizontal, FiMove, FiCopy, FiEye, FiEyeOff, FiArchive, FiTrash2 } from 'react-icons/fi';
+import { archiveCard, watchCard, unwatchCard } from '../../services/api';
 import { emitBoardChange } from '../../services/socket';
 import { useAlert } from '../../contexts/AlertContext';
 import MoveCardModal from './MoveCardModal';
@@ -24,6 +24,13 @@ const CardActions = ({
   const [showMoveCardModal, setShowMoveCardModal] = useState(false);
   // Thêm state cho modal copy card
   const [showCopyCardModal, setShowCopyCardModal] = useState(false);
+
+  // Update isWatching when cardData changes
+  useEffect(() => {
+    if (cardData) {
+      setIsWatching(cardData.is_watching || false);
+    }
+  }, [cardData]);
 
   // Xử lý click outside cho dropdown
   useEffect(() => {
@@ -85,11 +92,40 @@ const CardActions = ({
     }
   };
 
-  const handleToggleWatch = () => {
-    setIsWatching(!isWatching);
-    console.log(`${isWatching ? 'Unwatch' : 'Watch'} card action triggered`);
+  const handleToggleWatch = async () => {
     setShowActionDropdown(false);
-    // Implement logic for watching/unwatching card
+    setLoading(true);
+    
+    try {
+      if (isWatching) {
+        await unwatchCard(cardData.id);
+        setIsWatching(false);
+        
+        // Update parent component
+        if (onUpdate) {
+          onUpdate({
+            ...cardData,
+            is_watching: false
+          });
+        }
+      } else {
+        await watchCard(cardData.id);
+        setIsWatching(true);
+        
+        // Update parent component
+        if (onUpdate) {
+          onUpdate({
+            ...cardData,
+            is_watching: true
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to toggle watch', error);
+      alert('Không thể thay đổi trạng thái theo dõi. Vui lòng thử lại.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleArchiveCard = () => {
@@ -172,9 +208,19 @@ const CardActions = ({
             <button
               className="w-full text-left px-3 py-2 text-sm flex items-center hover:bg-gray-100 dark:hover:bg-gray-700"
               onClick={handleToggleWatch}
+              disabled={loading}
             >
-              <FiEye className="mr-2 w-4 h-4 text-gray-500 dark:text-gray-400" />
-              {isWatching ? 'Unwatch' : 'Watch'}
+              {isWatching ? (
+                <>
+                  <FiEyeOff className="mr-2 w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  Unwatch
+                </>
+              ) : (
+                <>
+                  <FiEye className="mr-2 w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  Watch
+                </>
+              )}
             </button>
             
             {canModify && (
