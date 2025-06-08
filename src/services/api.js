@@ -327,4 +327,9 @@ export const downloadAttachment = async (attachmentId, fileName) => {
   }
 };
 
+export const getUserCards = async () => {
+    const response = await api.get('/cards/my-cards');
+    return response.data;
+};
+
 export default api;

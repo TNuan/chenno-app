@@ -1,0 +1,447 @@
+.calendar-container {
+    @apply p-6 bg-white dark:bg-gray-900;
+}
+
+.calendar-header {
+    @apply flex items-start justify-between mb-6 pb-4 border-b border-gray-200 dark:border-gray-700;
+}
+
+.calendar-stats {
+    @apply flex items-center gap-4;
+}
+
+.stat-item {
+    @apply flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400;
+}
+
+.calendar-legend {
+    @apply flex flex-col gap-3;
+}
+
+.legend-section {
+    @apply flex items-center gap-3;
+}
+
+.legend-title {
+    @apply text-sm font-medium text-gray-700 dark:text-gray-300;
+}
+
+.legend-items {
+    @apply flex items-center gap-4;
+}
+
+.legend-item {
+    @apply flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400;
+}
+
+.legend-color {
+    @apply w-3 h-3 rounded;
+}
+
+.legend-priority {
+    @apply w-3 h-3 rounded-full border-2;
+}
+
+.legend-priority.high {
+    @apply border-red-500;
+}
+
+.legend-priority.medium {
+    @apply border-yellow-500;
+}
+
+.legend-priority.low {
+    @apply border-green-500;
+}
+
+.calendar-content {
+    @apply bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 p-4;
+}
+
+/* Custom toolbar styles */
+.calendar-toolbar {
+    @apply flex items-center justify-between  pb-3 border-b border-gray-200 dark:border-gray-700 dark:bg-gray-900 bg-white;
+}
+
+.toolbar-navigation {
+    @apply flex items-center gap-2;
+}
+
+.nav-button {
+    @apply p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors text-gray-600 dark:text-gray-400;
+}
+
+.today-button {
+    @apply px-3 py-2 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors;
+}
+
+.toolbar-label {
+    @apply flex-1 text-center;
+}
+
+.toolbar-views {
+    @apply flex items-center gap-1 bg-gray-100 dark:bg-gray-800 rounded-lg p-1;
+}
+
+.view-button {
+    @apply px-3 py-2 text-sm rounded-md transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white;
+}
+
+.view-button.active {
+    @apply bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm;
+}
+
+/* Simplified event styles */
+.calendar-event-simple {
+    @apply flex items-center gap-2 h-full px-2 overflow-hidden;
+}
+
+.event-priority-dot {
+    @apply w-2 h-2 rounded-full flex-shrink-0;
+}
+
+.event-title-simple {
+    @apply text-xs font-medium truncate flex-1;
+}
+
+/* Agenda event styles */
+.agenda-event {
+    @apply p-3;
+}
+
+.agenda-event-content {
+    @apply space-y-1;
+}
+
+/* React Big Calendar overrides - Light mode fixes */
+.rbc-calendar {
+    @apply bg-white dark:bg-gray-900;
+    color: #374151;
+    /* gray-700 for light mode */
+}
+
+.dark .rbc-calendar {
+    color: #f3f4f6;
+    /* gray-100 for dark mode */
+}
+
+.rbc-header {
+    @apply bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium;
+    border-bottom: 1px solid #e5e7eb;
+    /* gray-200 */
+}
+
+.dark .rbc-header {
+    border-bottom: 1px solid #374151;
+    /* gray-700 */
+}
+
+.rbc-month-view,
+.rbc-time-view {
+    border: 1px solid #e5e7eb;
+    /* gray-200 */
+}
+
+.dark .rbc-month-view,
+.dark .rbc-time-view {
+    border: 1px solid #374151;
+    /* gray-700 */
+}
+
+.rbc-day-bg {
+    @apply bg-gray-200 dark:bg-gray-900;
+    border-right: 1px solid #e5e7eb;
+    /* gray-200 */
+}
+
+.dark .rbc-day-bg {
+    border-right: 1px solid #374151;
+    /* gray-700 */
+}
+
+.rbc-day-bg:hover {
+    @apply bg-gray-100 dark:bg-gray-800;
+}
+
+.rbc-today {
+    background-color: #dbeafe;
+    /* blue-100 */
+}
+
+.dark .rbc-today {
+    background-color: rgba(59, 130, 246, 0.1);
+    /* blue-500 with opacity */
+}
+
+.rbc-off-range-bg {
+    @apply bg-gray-100 dark:bg-gray-800;
+}
+
+.rbc-date-cell {
+    color: #6b7280;
+    /* gray-500 */
+}
+
+.dark .rbc-date-cell {
+    color: #9ca3af;
+    /* gray-400 */
+}
+
+.rbc-date-cell.rbc-now {
+    color: #2563eb;
+    /* blue-600 */
+    font-weight: 600;
+}
+
+.dark .rbc-date-cell.rbc-now {
+    color: #60a5fa;
+    /* blue-400 */
+}
+
+.rbc-month-row {
+    border-bottom: 1px solid #e5e7eb;
+    /* gray-200 */
+    /* .rbc-day-bg {
+        @apply bg-gray-100 dark:bg-gray-800;
+    } */
+}
+
+.dark .rbc-month-row {
+    border-bottom: 1px solid #374151;
+    /* gray-700 */
+}
+
+.rbc-date-cell button {
+    @apply hover:bg-blue-100 dark:hover:bg-blue-900 rounded;
+}
+
+/* Week and day view styles */
+.rbc-time-header {
+    border-bottom: 1px solid #e5e7eb;
+    /* gray-200 */
+}
+
+.dark .rbc-time-header {
+    border-bottom: 1px solid #374151;
+    /* gray-700 */
+}
+
+.rbc-time-content {
+    border-top: 1px solid #e5e7eb;
+    /* gray-200 */
+}
+
+.dark .rbc-time-content {
+    border-top: 1px solid #374151;
+    /* gray-700 */
+}
+
+.rbc-time-slot {
+    border-top: 1px solid #f3f4f6;
+    @apply bg-gray-50 dark:bg-gray-800;
+    /* gray-100 */
+}
+
+.dark .rbc-time-slot {
+    border-top: 1px solid #374151;
+    /* gray-700 */
+}
+
+.rbc-timeslot-group {
+    border-bottom: 1px solid #e5e7eb;
+    /* gray-200 */
+}
+
+.dark .rbc-timeslot-group {
+    border-bottom: 1px solid #374151;
+    /* gray-700 */
+}
+
+.rbc-current-time-indicator {
+    @apply bg-red-500;
+}
+
+/* Agenda view styles */
+.rbc-agenda-view table {
+    border: 1px solid #e5e7eb;
+    /* gray-200 */
+}
+
+.dark .rbc-agenda-view table {
+    border: 1px solid #374151;
+    /* gray-700 */
+}
+
+.rbc-agenda-view tbody tr {
+    border-bottom: 1px solid #f3f4f6;
+    /* gray-100 */
+}
+
+.dark .rbc-agenda-view tbody tr {
+    border-bottom: 1px solid #374151;
+    /* gray-700 */
+}
+
+.rbc-agenda-view tbody tr:hover {
+    @apply bg-gray-50 dark:bg-gray-800;
+}
+
+.rbc-agenda-date-cell {
+    background-color: #f9fafb;
+    /* gray-50 */
+    color: #6b7280;
+    /* gray-500 */
+}
+
+.dark .rbc-agenda-date-cell {
+    background-color: #374151;
+    /* gray-700 */
+    color: #9ca3af;
+    /* gray-400 */
+}
+
+.rbc-agenda-time-cell {
+    color: #6b7280;
+    /* gray-500 */
+}
+
+.dark .rbc-agenda-time-cell {
+    color: #9ca3af;
+    /* gray-400 */
+}
+
+/* Event popup styles */
+.rbc-overlay {
+    background-color: white;
+    border: 1px solid #e5e7eb;
+    /* gray-200 */
+}
+
+.dark .rbc-overlay {
+    background-color: #1f2937;
+    /* gray-800 */
+    border: 1px solid #374151;
+    /* gray-700 */
+}
+
+.rbc-overlay-header {
+    background-color: #f9fafb;
+    /* gray-50 */
+    border-bottom: 1px solid #e5e7eb;
+    /* gray-200 */
+    color: #374151;
+    /* gray-700 */
+}
+
+.dark .rbc-overlay-header {
+    background-color: #374151;
+    /* gray-700 */
+    border-bottom: 1px solid #4b5563;
+    /* gray-600 */
+    color: #d1d5db;
+    /* gray-300 */
+}
+
+/* Show more button */
+.rbc-show-more {
+    color: #2563eb;
+    /* blue-600 */
+}
+
+.dark .rbc-show-more {
+    color: #60a5fa;
+    /* blue-400 */
+}
+
+.rbc-show-more:hover {
+    color: #1d4ed8;
+    /* blue-700 */
+}
+
+.dark .rbc-show-more:hover {
+    color: #93c5fd;
+    /* blue-300 */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .calendar-header {
+        @apply flex-col items-start gap-4;
+    }
+
+    .calendar-legend {
+        @apply w-full;
+    }
+
+    .legend-section {
+        @apply flex-col items-start gap-2;
+    }
+
+    .legend-items {
+        @apply flex-wrap;
+    }
+
+    .calendar-toolbar {
+        @apply flex-col gap-3;
+    }
+
+    .toolbar-views {
+        @apply w-full justify-center;
+    }
+}
+
+/* Dark mode specific adjustments */
+@media (prefers-color-scheme: dark) {
+    .rbc-calendar {
+        background-color: rgb(17 24 39);
+    }
+
+    .rbc-event {
+        color: white;
+    }
+}
+
+
+/* Tăng chiều cao của ô ngày trong month view */
+.rbc-day-slot {
+    min-height: 120px;
+    /* Đảm bảo ô ngày có đủ không gian */
+}
+
+/* Tùy chỉnh sự kiện để hiển thị nhiều hơn */
+.rbc-day-slot .rbc-event {
+    min-height: 18px;
+    /* Giảm chiều cao tối thiểu của sự kiện */
+    font-size: 11px;
+    /* Giảm kích thước chữ */
+    padding: 1px 4px;
+    /* Giảm padding */
+    margin-bottom: 2px;
+    /* Khoảng cách giữa các sự kiện */
+    line-height: 1.2;
+    /* Giảm chiều cao dòng */
+}
+
+/* Loại bỏ giới hạn chiều cao của container sự kiện */
+.rbc-day-slot .rbc-events-container {
+    max-height: none;
+    /* Cho phép hiển thị nhiều sự kiện */
+    padding-bottom: 2px;
+    /* Đảm bảo không gian cho nút "Xem thêm" */
+}
+
+/* Tùy chỉnh nút "Xem thêm" */
+.rbc-show-more {
+    font-size: 11px;
+    /* Kích thước chữ nhỏ hơn */
+    padding: 2px 4px;
+    /* Giảm padding */
+    line-height: 1.2;
+    /* Căn chỉnh dòng */
+}
+
+/* Đảm bảo container sự kiện trong month view không bị cắt */
+.rbc-month-row {
+    min-height: 120px;
+    /* Đồng bộ chiều cao với ô ngày */
+}
