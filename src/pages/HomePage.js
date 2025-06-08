@@ -9,6 +9,7 @@ import CreateWorkspaceModal from '../components/Workspace/CreateWorkspaceModal';
 import CreateBoardModal from '../components/Board/CreateBoardModal';
 import { getWorkspaces, getAllBoards } from '../services/api';
 import FavoriteBoards from '../components/Board/FavoriteBoards';
+import CalendarView from '../components/Calendar/CalendarView';
 
 const HomePage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -133,7 +134,7 @@ const HomePage = () => {
                     </>
                   }
                 />
-
+                <Route path="/calendar" element={<CalendarView />} />
               </Routes>
             </div>
           </div>
