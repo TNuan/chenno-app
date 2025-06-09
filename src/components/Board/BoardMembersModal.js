@@ -3,6 +3,7 @@ import { FiSearch, FiMoreHorizontal, FiUserCheck, FiTrash2, FiX } from 'react-ic
 import { toast } from 'react-toastify';
 import api from '../../services/api';
 import { emitBoardChange } from '../../services/socket';
+import UserAvatar from '../common/UserAvatar'; // Thêm import UserAvatar
 
 const MemberActions = ({ member, boardId, onUpdate, currentUserRole }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -130,6 +131,7 @@ const MemberActions = ({ member, boardId, onUpdate, currentUserRole }) => {
 };
 
 const BoardMembersModal = ({ isOpen, onClose, boardId, boardMembers = [], currentUserRole }) => {
+  console.log('BoardMembersModal rendered with boardId:', boardMembers);
   const [searchQuery, setSearchQuery] = useState('');
   const [members, setMembers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -256,19 +258,18 @@ const BoardMembersModal = ({ isOpen, onClose, boardId, boardMembers = [], curren
                 >
                   <div className="flex items-center space-x-3">
                     <div className="flex-shrink-0">
-                      {member.avatar ? (
-                        <img
-                          className="h-8 w-8 rounded-full"
-                          src={member.avatar}
-                          alt={member.username}
-                        />
-                      ) : (
-                        <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                            {member.username?.charAt(0).toUpperCase() || 'U'}
-                          </span>
-                        </div>
-                      )}
+                      {/* Thay thế phần avatar cũ bằng UserAvatar */}
+                      <UserAvatar
+                        user={{
+                          username: member.username,
+                          email: member.email,
+                          avatar: member.avatar
+                        }}
+                        size="md"
+                        showOnlineIndicator={false}
+                        className="hover:scale-105 transition-transform"
+                        ringColor="border-gray-200 dark:border-gray-600"
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate">

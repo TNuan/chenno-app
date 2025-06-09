@@ -5,6 +5,7 @@ import { vi } from 'date-fns/locale';
 import { toast } from 'react-toastify';
 import { markNotificationAsRead, markAllNotificationsAsRead } from '../../services/api';
 import { getSocket } from '../../services/socket';
+import UserAvatar from '../common/UserAvatar'; // Thêm import UserAvatar
 
 const Notifications = ({ 
   isOpen, 
@@ -32,16 +33,6 @@ const Notifications = ({
     };
   }, [isOpen, onClose]);
 
-  // Khi mở notification panel, gửi socket event báo là user đã đọc thông báo
-  // useEffect(() => {
-  //   if (isOpen) {
-  //     const socket = getSocket();
-  //     if (socket) {
-  //       socket.emit('notifications_seen');
-  //     }
-  //   }
-  // }, [isOpen]);
-
   const handleContentClick = (e) => {
     e.stopPropagation();
   };
@@ -55,12 +46,6 @@ const Notifications = ({
           : notification
       );
       onUpdate(updatedNotifications);
-      
-      // Gửi socket event để cập nhật số lượng thông báo chưa đọc
-      // const socket = getSocket();
-      // if (socket) {
-      //   socket.emit('notification_read', { notificationId });
-      // }
     } catch (error) {
       console.error('Failed to mark notification as read:', error);
       toast.error('Không thể đánh dấu thông báo đã đọc');
@@ -76,7 +61,6 @@ const Notifications = ({
       }));
       onUpdate(updatedNotifications);
       
-      // Gửi socket event để cập nhật số lượng thông báo chưa đọc về 0
       const socket = getSocket();
       if (socket) {
         socket.emit('notification_read_all');
@@ -90,16 +74,12 @@ const Notifications = ({
   };
 
   const handleNotificationClick = (notification) => {
-    // Nếu chưa đọc, đánh dấu đã đọc
     if (!notification.is_read) {
       handleMarkAsRead(notification.id);
     }
     
-    // Xử lý điều hướng dựa trên loại thông báo
     if (notification.data && notification.data.redirectUrl) {
-      // Đóng panel thông báo
       onClose();
-      // Điều hướng đến URL đích
       window.location.href = notification.data.redirectUrl;
     }
   };
@@ -177,61 +157,86 @@ const Notifications = ({
           displayedNotifications.map((notification) => (
             <div
               key={notification.id}
-              className={`flex items-start p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer ${
+              className={`flex items-start p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors ${
                 !notification.is_read ? 'bg-blue-50 dark:bg-blue-900/20' : ''
               }`}
               onClick={() => handleNotificationClick(notification)}
             >
-              {/* Avatar */}
+              {/* Avatar - Thay thế bằng UserAvatar */}
               <div className="flex-shrink-0">
-                {notification.sender?.avatar ? (
-                  <img
-                    src={notification.sender.avatar}
-                    alt=""
-                    className="h-10 w-10 rounded-full"
-                  />
-                ) : (
-                  <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                    <span className="text-blue-600 dark:text-blue-200 font-medium">
-                      {notification.sender?.username?.charAt(0).toUpperCase() || "S"}
-                    </span>
-                  </div>
-                )}
+                <UserAvatar
+                  user={{
+                    username: notification.sender?.username || "System",
+                    email: notification.sender?.email,
+                    avatar: notification.sender?.avatar
+                  }}
+                  size="lg"
+                  showOnlineIndicator={false}
+                  className="hover:scale-105 transition-transform"
+                  ringColor="border-gray-200 dark:border-gray-600"
+                />
               </div>
 
               {/* Content */}
-              <div className="ml-4 flex-1">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-gray-900 dark:text-white">
-                    <span className="font-medium">{notification.sender?.username || "Hệ thống"}</span>{': '}
-                    {notification.content}
-                  </p>
-                  {!notification.is_read && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleMarkAsRead(notification.id);
-                      }}
-                      className="ml-2 text-blue-500 hover:text-blue-600 dark:hover:text-blue-400"
-                      title="Đánh dấu đã đọc"
-                    >
-                      <FiCheckCircle className="h-5 w-5" />
-                    </button>
-                  )}
+              <div className="ml-4 flex-1 min-w-0">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-900 dark:text-white">
+                      <span className="font-medium truncate">
+                        {notification.sender?.username || "Hệ thống"}
+                      </span>
+                      {': '}
+                      <span className="text-gray-700 dark:text-gray-300">
+                        {notification.content}
+                      </span>
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {format(new Date(notification.created_at), 'HH:mm dd/MM/yyyy', { locale: vi })}
+                    </p>
+                    {notification.data?.description && (
+                      <p className="mt-1 text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
+                        {notification.data.description}
+                      </p>
+                    )}
+                  </div>
+                  
+                  {/* Read/Unread indicator and action */}
+                  <div className="flex-shrink-0 ml-2">
+                    {!notification.is_read ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleMarkAsRead(notification.id);
+                          }}
+                          className="text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 p-1 rounded-full hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
+                          title="Đánh dấu đã đọc"
+                        >
+                          <FiCheckCircle className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-6 h-6"></div> // Placeholder để giữ alignment
+                    )}
+                  </div>
                 </div>
-                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                  {format(new Date(notification.created_at), 'HH:mm dd/MM/yyyy', { locale: vi })}
-                </p>
-                {notification.data?.description && (
-                  <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">
-                    {notification.data.description}
-                  </p>
-                )}
               </div>
             </div>
           ))
         )}
       </div>
+
+      {/* Footer nếu có nhiều thông báo */}
+      {displayedNotifications.length > 0 && (
+        <div className="px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+          <div className="text-center">
+            <button className="text-sm text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 font-medium">
+              Xem tất cả thông báo
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FiSearch, FiMoreHorizontal, FiLink, FiUserPlus, FiTrash2, FiUserCheck } from 'react-icons/fi';
 import InviteMemberModal from './InviteMemberModal';
+import UserAvatar from '../common/UserAvatar'; // Thêm import UserAvatar
 import { getMembersByWorkspace, updateRoleMember, removeMemberFromWorkspace } from '../../services/api';
 import { toast } from 'react-toastify';
 
@@ -23,23 +24,23 @@ const MemberActions = ({ member, workspaceId, onUpdate, currentUserRole }) => {
     try {
       await updateRoleMember(workspaceId, member.user_id, { role: newRole });
       onUpdate({ ...member, role: newRole });
-      toast.success(`Updated ${member.username}'s role to ${newRole}`);
+      toast.success(`Cập nhật vai trò của ${member.username} thành ${newRole}`);
     } catch (error) {
       console.error('Failed to update member role:', error);
-      toast.error('Failed to update member role');
+      toast.error('Không thể cập nhật vai trò thành viên');
     }
     setIsOpen(false);
   };
 
   const handleRemoveMember = async () => {
-    if (window.confirm(`Are you sure you want to remove ${member.username} from this workspace?`)) {
+    if (window.confirm(`Bạn có chắc muốn xóa ${member.username} khỏi workspace này?`)) {
       try {
         await removeMemberFromWorkspace(workspaceId, member.user_id);
         onUpdate(null, true);
-        toast.success(`Removed ${member.username} from workspace`);
+        toast.success(`Đã xóa ${member.username} khỏi workspace`);
       } catch (error) {
         console.error('Failed to remove member:', error);
-        toast.error('Failed to remove member');
+        toast.error('Không thể xóa thành viên');
       }
     }
     setIsOpen(false);
@@ -72,7 +73,7 @@ const MemberActions = ({ member, workspaceId, onUpdate, currentUserRole }) => {
                 } hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center`}
               >
                 <FiUserCheck className="mr-2 h-4 w-4" />
-                Make Admin
+                Làm Admin
               </button>
               <button
                 onClick={() => handleUpdateRole('member')}
@@ -83,7 +84,7 @@ const MemberActions = ({ member, workspaceId, onUpdate, currentUserRole }) => {
                 } hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center`}
               >
                 <FiUserCheck className="mr-2 h-4 w-4" />
-                Make Member
+                Làm Thành viên
               </button>
             </>
           )}
@@ -92,7 +93,7 @@ const MemberActions = ({ member, workspaceId, onUpdate, currentUserRole }) => {
             className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center"
           >
             <FiTrash2 className="mr-2 h-4 w-4" />
-            Remove from workspace
+            Xóa khỏi workspace
           </button>
         </div>
       )}
@@ -114,8 +115,8 @@ const MemberList = ({ workspaceId, role }) => {
         setMembers(response.members);
       } catch (err) {
         console.error('Failed to fetch members:', err);
-        toast.error('Failed to load workspace members');
-        setError('Failed to load members');
+        toast.error('Không thể tải danh sách thành viên workspace');
+        setError('Không thể tải danh sách thành viên');
       } finally {
         setIsLoading(false);
       }
@@ -180,7 +181,7 @@ const MemberList = ({ workspaceId, role }) => {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Collaborators
+              Cộng tác viên
             </h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
               {filteredMembers.length}/10
@@ -192,7 +193,7 @@ const MemberList = ({ workspaceId, role }) => {
               className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm font-medium transition-colors"
             >
               <FiUserPlus className="mr-2 h-5 w-5" />
-              Invite Members
+              Mời thành viên
             </button>
           )}
         </div>
@@ -205,7 +206,7 @@ const MemberList = ({ workspaceId, role }) => {
           <input
             type="text"
             className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            placeholder="Filter by name..."
+            placeholder="Tìm kiếm theo tên..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -216,7 +217,7 @@ const MemberList = ({ workspaceId, role }) => {
           {/* Workspace Members Section */}
           <div>
             <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-              Workspace members ({filteredMembers.length})
+              Thành viên workspace ({filteredMembers.length})
             </h3>
             <div className="space-y-2">
               {filteredMembers.map((member) => (
@@ -226,19 +227,18 @@ const MemberList = ({ workspaceId, role }) => {
                 >
                   <div className="flex items-center space-x-3">
                     <div className="flex-shrink-0">
-                      {member.avatar ? (
-                        <img
-                          className="h-8 w-8 rounded-full"
-                          src={member.avatar}
-                          alt={member.username}
-                        />
-                      ) : (
-                        <div className="h-8 w-8 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-                          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                            {member.username.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
+                      {/* Thay thế phần avatar cũ bằng UserAvatar */}
+                      <UserAvatar
+                        user={{
+                          username: member.username,
+                          email: member.email,
+                          avatar: member.avatar
+                        }}
+                        size="md"
+                        showOnlineIndicator={false}
+                        className="hover:scale-105 transition-transform"
+                        ringColor="border-gray-200 dark:border-gray-600"
+                      />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
@@ -250,8 +250,13 @@ const MemberList = ({ workspaceId, role }) => {
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="text-sm text-gray-500 dark:text-gray-400">
-                      {member.role}
+                    <span className={`text-xs px-2 py-1 rounded-full 
+                      ${member.role === 'owner' ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300' : 
+                        member.role === 'admin' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' : 
+                        'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                      }`}>
+                      {member.role === 'owner' ? 'Owner' : 
+                       member.role === 'admin' ? 'Admin' : 'Member'}
                     </span>
                     <MemberActions
                       member={member}
@@ -264,6 +269,7 @@ const MemberList = ({ workspaceId, role }) => {
               ))}
             </div>
           </div>
+          
           {/* Invite Link Section */}
           {(role === 'owner' || role === 'admin') && (
             <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -271,19 +277,18 @@ const MemberList = ({ workspaceId, role }) => {
                 <div className="flex items-center space-x-2">
                   <FiLink className="h-5 w-5 text-gray-400" />
                   <span className="text-sm text-gray-600 dark:text-gray-300">
-                    Invite with link
+                    Mời bằng liên kết
                   </span>
                 </div>
                 <button className="text-sm text-blue-500 hover:text-blue-600 font-medium">
-                  Create link
+                  Tạo liên kết
                 </button>
               </div>
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                Anyone with an invite link can join this Workspace. You can also disable and create a new invite link for this Workspace at any time.
+                Bất kỳ ai có liên kết mời có thể tham gia Workspace này. Bạn cũng có thể vô hiệu hóa và tạo liên kết mời mới cho Workspace này bất kỳ lúc nào.
               </p>
             </div>
           )}
-
         </div>
       </div>
 
