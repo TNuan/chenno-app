@@ -16,7 +16,6 @@ const BoardCard = ({ board, isRecentlyViewed, onUpdate }) => {
             setIsToggling(true);
             await toggleFavoriteBoard(board.id);
             
-            // Update the board's favorite status locally through parent component
             if (onUpdate) {
                 onUpdate({
                     ...board,
@@ -40,7 +39,7 @@ const BoardCard = ({ board, isRecentlyViewed, onUpdate }) => {
     return (
         <div
             onClick={() => navigate(`/b/${board.id}`)}
-            className="group relative bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer min-h-[160px] overflow-hidden"
+            className="group relative bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-lg transition-shadow cursor-pointer h-[200px] overflow-hidden"
         >
             {/* Board Background */}
             <div
@@ -53,10 +52,10 @@ const BoardCard = ({ board, isRecentlyViewed, onUpdate }) => {
                 }}
             />
 
-            {/* Updated Favorite Button */}
-            <div className="relative z-15 flex justify-end p-2">
+            {/* Favorite Button */}
+            <div className="relative z-15 flex justify-end p-3">
                 <button
-                    className={`p-1.5 hover:bg-white/20 rounded bg-white/40 dark:bg-gray-800/30 ${
+                    className={`p-1.5 hover:bg-white/20 rounded-full bg-white/20 dark:bg-gray-800/30 backdrop-blur-sm ${
                         isToggling ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
                     onClick={handleToggleFavorite}
@@ -64,49 +63,58 @@ const BoardCard = ({ board, isRecentlyViewed, onUpdate }) => {
                     title={board.is_favorite ? 'Xóa khỏi mục yêu thích' : 'Thêm vào mục yêu thích'}
                 >
                     <FiStar 
-                        className={`h-5 w-5 ${
+                        className={`h-4 w-4 ${
                             board.is_favorite
-                                ? 'text-yellow-500 fill-current'
-                                : 'text-gray-200 hover:text-yellow-500'
+                                ? 'text-yellow-400 fill-current'
+                                : 'text-white hover:text-yellow-400'
                         }`} 
                     />
                 </button>
             </div>
 
-            {/* Board Content */}
-            <div className="relative z-10 flex flex-col mt-12">
-                <div className="mt-auto px-3 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm">
-                    <div className="flex items-center justify-between mb-2">
-                        <h3 className="text-lg font-medium text-gray-800 dark:text-white mb-1">
+            {/* Board Content - Fixed height at bottom */}
+            <div className="absolute bottom-0 left-0 right-0 z-10">
+                <div className="px-4 py-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-b-lg h-20 flex flex-col justify-between">
+                    {/* Top section - Name and description */}
+                    <div className="flex-1 min-h-0">
+                        {/* Board Name - Always visible, truncated if too long */}
+                        <h3 className="text-base font-semibold text-gray-900 dark:text-white truncate leading-tight" title={board.name}>
                             {board.name}
                         </h3>
+
+                        {/* Description - Max 1 line with ellipsis */}
+                        {board.description && (
+                            <p className="text-sm text-gray-700 dark:text-gray-300 truncate leading-tight mt-0.5" title={board.description}>
+                                {board.description}
+                            </p>
+                        )}
+                    </div>
+
+                    {/* Bottom section - Time info - Always at bottom */}
+                    <div className="flex items-center text-xs text-gray-500 dark:text-gray-400 mt-1">
                         {isRecentlyViewed ? (
-                            <div className="flex items-center text-sm text-gray-500 dark:text-gray-400">
-                                <FiClock className="mr-1.5 h-4 w-4" />
-                                <span>
+                            <>
+                                <FiClock className="mr-1 h-3 w-3 flex-shrink-0" />
+                                <span className="truncate">
                                     Last visited {new Date(board.viewed_at).toLocaleString('vi-VN', {
-                                        year: 'numeric',
-                                        month: 'numeric',
-                                        day: 'numeric',
+                                        day: '2-digit',
+                                        month: '2-digit',
                                         hour: '2-digit',
                                         minute: '2-digit'
                                     })}
                                 </span>
-                            </div>
+                            </>
                         ) : (
-                            <div className="text-sm text-gray-700 dark:text-gray-300">
-                                Created {new Date(board.created_at).toLocaleDateString('vi-VN')}
-                            </div>
+                            <span className="truncate">
+                                Tạo ngày {new Date(board.created_at).toLocaleDateString('vi-VN')}
+                            </span>
                         )}
                     </div>
-
-                    {board.description && (
-                        <p className="text-sm text-gray-700 dark:text-gray-200 mb-2">
-                            {board.description}
-                        </p>
-                    )}
                 </div>
             </div>
+
+            {/* Gradient overlay for better text readability */}
+            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-black/20 to-transparent pointer-events-none z-5"></div>
         </div>
     );
 }

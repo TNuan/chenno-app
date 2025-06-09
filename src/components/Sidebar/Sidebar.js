@@ -20,7 +20,6 @@ const Sidebar = (props) => {
   const [expandedWorkspace, setExpandedWorkspace] = useState(null);
   const { setIsModalOpen, handleWorkspaceCreated, allBoardsUser, setIsCreateBoardModalOpen} = props;
 
-
   return (
     <aside className="fixed left-0 top-16 h-[calc(100vh-4rem)] w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
       <div className="p-4 space-y-6">
@@ -92,17 +91,22 @@ const Sidebar = (props) => {
                   onClick={() => setExpandedWorkspace(
                     expandedWorkspace === workspace.id ? null : workspace.id
                   )}
-                  className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  className="flex items-center justify-between w-full px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors group"
+                  title={workspace.name} // Hiển thị tên đầy đủ khi hover
                 >
-                  <div className="flex items-center">
-                    <FiFolder className="mr-3 h-5 w-5" />
-                    {workspace.name}
+                  <div className="flex items-center min-w-0 flex-1">
+                    <FiFolder className="mr-3 h-5 w-5 flex-shrink-0" />
+                    <span className="truncate">
+                      {workspace.name}
+                    </span>
                   </div>
-                  {expandedWorkspace === workspace.id ? (
-                    <FiChevronDown className="h-4 w-4" />
-                  ) : (
-                    <FiChevronRight className="h-4 w-4" />
-                  )}
+                  <div className="ml-2 flex-shrink-0">
+                    {expandedWorkspace === workspace.id ? (
+                      <FiChevronDown className="h-4 w-4" />
+                    ) : (
+                      <FiChevronRight className="h-4 w-4" />
+                    )}
+                  </div>
                 </button>
 
                 {expandedWorkspace === workspace.id && (
@@ -130,7 +134,7 @@ const Sidebar = (props) => {
 
                     {workspace.role === 'owner' && (
                       <button
-                        onClick={() => console.log('Navigate to boards')}
+                        onClick={() => console.log('Navigate to settings')}
                         className="flex items-center w-full px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                       >
                         <FiSettings className="mr-3 h-4 w-4" />
@@ -165,7 +169,6 @@ const Sidebar = (props) => {
           </div>
         </div>
       </div>
-
     </aside>
   );
 };
