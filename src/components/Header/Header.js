@@ -1,7 +1,8 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiBell, FiInfo, FiLogOut, FiUser, FiSettings, FiMoon, FiSun, FiSearch } from 'react-icons/fi';
-import Avatar from 'react-avatar';
+// import Avatar from 'react-avatar'; // Xóa import này
+import UserAvatar from '../common/UserAvatar'; // Thêm import UserAvatar
 import { ThemeContext } from '../../context/ThemeContext';
 import { logout, getNotifications } from '../../services/api';
 import Notifications from './Notifications';
@@ -224,11 +225,17 @@ const Header = () => {
                 onClick={() => setIsAccountOpen(!isAccountOpen)}
                 className="flex items-center space-x-3 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-all"
               >
-                <Avatar
-                  name={currentUser?.username || "User"}
-                  size="32"
-                  round={true}
-                  className="border-2 border-blue-500"
+                {/* Thay thế Avatar component cũ bằng UserAvatar */}
+                <UserAvatar
+                  user={{
+                    username: currentUser?.username,
+                    email: currentUser?.email,
+                    avatar: currentUser?.avatar
+                  }}
+                  size="md"
+                  showOnlineIndicator={false}
+                  className="hover:scale-105 transition-transform"
+                  ringColor="border-blue-500"
                 />
                 <span className="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-200">
                   {currentUser?.username || 'Người dùng'}
@@ -239,33 +246,57 @@ const Header = () => {
                 <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 animate-fadeIn">
                   {/* Profile Section */}
                   <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{currentUser?.username || "Người dùng"}</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{currentUser?.email || "example@gmail.com"}</p>
+                    <div className="flex items-center space-x-3 mb-2">
+                      <UserAvatar
+                        user={{
+                          username: currentUser?.username,
+                          email: currentUser?.email,
+                          avatar: currentUser?.avatar
+                        }}
+                        size="sm"
+                        showOnlineIndicator={false}
+                        ringColor="border-blue-400"
+                      />
+                      <div className="flex-1 min-w-0"> {/* Thêm flex-1 min-w-0 để cho phép text truncate */}
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                          {currentUser?.username || "Người dùng"}
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+                          {currentUser?.email || "example@gmail.com"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
 
                   {/* Menu Items */}
                   <div className="py-1">
                     <button
-                      onClick={() => navigate('/profile')}
+                      onClick={() => {
+                        navigate('/profile');
+                        setIsAccountOpen(false);
+                      }}
                       className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
-                      <FiUser className="mr-3" size={16} />
-                      Hồ sơ
+                      <FiUser className="mr-3 flex-shrink-0" size={16} />
+                      <span className="truncate">Hồ sơ</span>
                     </button>
                     <button
-                      onClick={() => navigate('/settings')}
+                      onClick={() => {
+                        navigate('/settings');
+                        setIsAccountOpen(false);
+                      }}
                       className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                     >
-                      <FiSettings className="mr-3" size={16} />
-                      Cài đặt
+                      <FiSettings className="mr-3 flex-shrink-0" size={16} />
+                      <span className="truncate">Cài đặt</span>
                     </button>
                     <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
                     <button
                       onClick={handleLogout}
                       className="flex items-center w-full px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                     >
-                      <FiLogOut className="mr-3" size={16} />
-                      Đăng xuất
+                      <FiLogOut className="mr-3 flex-shrink-0" size={16} />
+                      <span className="truncate">Đăng xuất</span>
                     </button>
                   </div>
                 </div>

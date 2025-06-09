@@ -10,6 +10,7 @@ import { createEditableProps } from '../../utils/contentEditable';
 import { emitBoardChange } from '../../services/socket';
 import InviteBoardMemberModal from './InviteBoardMemberModal';
 import BoardMembersModal from './BoardMembersModal';
+import UserAvatar from '../common/UserAvatar';
 
 const BoardBar = ({ board, onUpdate, onlineUsers = [] }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -259,24 +260,13 @@ const BoardBar = ({ board, onUpdate, onlineUsers = [] }) => {
             <div className="flex items-center mr-3">
               <div className="flex -space-x-2 overflow-hidden">
                 {onlineUsers.slice(0, 5).map(user => (
-                  <div 
-                    key={user.id} 
-                    className="inline-block h-7 w-7 rounded-full ring-2 ring-white dark:ring-gray-800"
-                    title={user.name || user.email}
-                  >
-                    {user.avatar ? (
-                      <img 
-                        src={user.avatar} 
-                        alt={user.name || user.email}
-                        className="h-full w-full rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="h-full w-full flex items-center justify-center bg-blue-500 rounded-full text-white text-xs font-bold">
-                        {(user.name || user.email || 'U').charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <div className="absolute w-2.5 h-2.5 bg-green-500 rounded-full border border-white bottom-0 right-0"></div>
-                  </div>
+                  <UserAvatar
+                    key={user.id}
+                    user={user}
+                    size="sm"
+                    showOnlineIndicator={true}
+                    className="hover:z-10 hover:scale-110 transition-transform"
+                  />
                 ))}
                 {onlineUsers.length > 5 && (
                   <div className="inline-block h-7 w-7 rounded-full bg-gray-200 dark:bg-gray-600 border-2 border-white dark:border-gray-800 flex items-center justify-center text-xs font-medium text-gray-800 dark:text-white">
