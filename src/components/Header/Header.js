@@ -229,6 +229,7 @@ const Header = () => {
                   size="32"
                   round={true}
                   className="border-2 border-blue-500"
+                  src={currentUser?.avatar ? `http://localhost:3000${currentUser.avatar}` : undefined}
                 />
                 <span className="hidden md:block text-sm font-medium text-gray-700 dark:text-gray-200">
                   {currentUser?.username || 'Người dùng'}

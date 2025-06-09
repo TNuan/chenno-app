@@ -14,6 +14,7 @@ import HomePage from './pages/HomePage';
 import WorkspacePage from './pages/WorkspacePage';
 import { initSocket, disconnectSocket } from './services/socket';
 import { AlertProvider } from './contexts/AlertContext';
+import ProfilePage from './pages/ProfilePage';
 
 // Layout cho các trang được bảo vệ
 const DashboardLayout = ({ children }) => (
@@ -75,6 +76,7 @@ function App() {
               <Route path="/h/*" element={<PrivateRoute><HomePage/></PrivateRoute>} />
               <Route path="/w/:workspaceId/*" element={<PrivateRoute><WorkspacePage/></PrivateRoute>} />
               <Route path="/b/:boardId/*" element={<PrivateRoute><BoardsPage/></PrivateRoute>} />
+              <Route path="/profile" element={<PrivateRoute><ProfilePage/></PrivateRoute>} />
 
               {/* 404 Route */}
               <Route
