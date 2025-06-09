@@ -2,18 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { FiX } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { createBoard, getWorkspaces } from '../../services/api';
-import { Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 // Import background images
 const backgroundImages = require.context('../../assets/images/bg-boards', false, /\.(png|jpe?g|svg)$/);
 const bgImageList = backgroundImages.keys().map(backgroundImages);
 
 const CreateBoardModal = ({ isOpen, onClose, onBoardCreated, workspaceId }) => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    workspace_id: workspaceId || '', // Initialize with prop value
-    cover_img: bgImageList[0] // Default to first background
+    workspace_id: workspaceId || '',
+    cover_img: bgImageList[0]
   });
   const [workspaces, setWorkspaces] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,7 +35,6 @@ const CreateBoardModal = ({ isOpen, onClose, onBoardCreated, workspaceId }) => {
     }
   }, [isOpen]);
 
-  // Update workspace when prop changes
   useEffect(() => {
     if (workspaceId) {
       setFormData(prev => ({
@@ -65,7 +65,7 @@ const CreateBoardModal = ({ isOpen, onClose, onBoardCreated, workspaceId }) => {
       toast.success('Board created successfully!');
       onBoardCreated(response.board);
       onClose();
-      Navigate(`/b/${response.board.id}`); // Redirect to the new board page
+      navigate(`/b/${response.board.id}`);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to create board');
     } finally {
@@ -76,124 +76,133 @@ const CreateBoardModal = ({ isOpen, onClose, onBoardCreated, workspaceId }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose} />
 
-        <div className="inline-block w-full max-w-2xl px-4 pt-5 pb-4 overflow-y-auto text-left align-bottom transition-all transform bg-white rounded-lg shadow-xl dark:bg-gray-900 sm:my-8 sm:align-middle sm:p-6"
-             style={{ maxHeight: 'calc(100vh - 100px)' }} // Dynamic max height
-        >
+      {/* Compact modal container */}
+      <div className="relative bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+            Create New Board
+          </h3>
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
+            className="text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
           >
             <FiX className="w-6 h-6" />
           </button>
+        </div>
 
-          <div className="sm:flex sm:items-start">
-            <div className="w-full">
-              <h3 className="text-lg font-medium leading-6 text-gray-900 dark:text-white mb-4">
-                Create New Board
-              </h3>
-
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Background Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Background
-                  </label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {bgImageList.map((bg, index) => (
-                      <div
-                        key={index}
-                        onClick={() => setSelectedBg(bg)}
-                        className={`relative aspect-video rounded-lg cursor-pointer overflow-hidden ${
-                          selectedBg === bg ? 'ring-2 ring-blue-500' : ''
-                        }`}
-                      >
-                        <img
-                          src={bg}
-                          alt={`Background ${index + 1}`}
-                          className="w-full h-full object-cover"
-                        />
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto p-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Background Selection - Compact Grid */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Background
+              </label>
+              
+              {/* Responsive background grid */}
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg max-h-48 overflow-y-auto">
+                {bgImageList.map((bg, index) => (
+                  <div
+                    key={index}
+                    onClick={() => setSelectedBg(bg)}
+                    className={`relative aspect-video rounded cursor-pointer overflow-hidden transition-all duration-200 hover:scale-105 ${
+                      selectedBg === bg 
+                        ? 'ring-2 ring-blue-500' 
+                        : 'hover:ring-1 hover:ring-gray-300 dark:hover:ring-gray-600'
+                    }`}
+                  >
+                    <img
+                      src={bg}
+                      alt={`Background ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    {selectedBg === bg && (
+                      <div className="absolute inset-0 bg-blue-500/20 flex items-center justify-center">
+                        <div className="w-3 h-3 bg-blue-500 rounded-full flex items-center justify-center">
+                          <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                        </div>
                       </div>
-                    ))}
+                    )}
                   </div>
-                </div>
-
-                {/* Workspace Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Workspace *
-                  </label>
-                  <select
-                    value={formData.workspace_id} // This is controlled by state
-                    onChange={(e) => setFormData({ ...formData, workspace_id: e.target.value })}
-                    className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                    required
-                    disabled={!!workspaceId}
-                  >
-                    <option value="">Select a workspace</option>
-                    {workspaces.map((workspace) => (
-                      <option 
-                        key={workspace.id} 
-                        value={workspace.id}
-                      >
-                        {workspace.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Board Title */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Board Title *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="p-3 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                    placeholder="Enter board title"
-                    required
-                  />
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Description (Optional)
-                  </label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows="3"
-                    className="p-3 mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm dark:bg-gray-800 dark:border-gray-700 dark:text-white"
-                    placeholder="Add a more detailed description..."
-                  />
-                </div>
-
-                {/* Submit Button */}
-                <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
-                  >
-                    {isLoading ? 'Creating...' : 'Create Board'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onClose}
-                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-700"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
+                ))}
+              </div>
             </div>
-          </div>
+
+            {/* Form Fields - Compact Layout */}
+            <div className="space-y-3">
+              {/* Workspace Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Workspace *
+                </label>
+                <select
+                  value={formData.workspace_id}
+                  onChange={(e) => setFormData({ ...formData, workspace_id: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
+                  required
+                  disabled={!!workspaceId}
+                >
+                  <option value="">Select a workspace</option>
+                  {workspaces.map((workspace) => (
+                    <option key={workspace.id} value={workspace.id}>
+                      {workspace.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Board Title */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Board Title *
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white"
+                  placeholder="Enter board title"
+                  required
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Description (Optional)
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows="2"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white resize-none"
+                  placeholder="Add a more detailed description..."
+                />
+              </div>
+            </div>
+          </form>
+        </div>
+
+        {/* Footer Buttons */}
+        <div className="flex justify-end space-x-3 p-4 border-t border-gray-200 dark:border-gray-700">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isLoading}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Creating...' : 'Create Board'}
+          </button>
         </div>
       </div>
     </div>

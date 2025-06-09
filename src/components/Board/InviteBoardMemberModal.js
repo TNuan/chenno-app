@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FiX, FiSearch, FiUserPlus, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
+import { FiX, FiSearch, FiUserPlus, FiCheckCircle, FiAlertCircle, FiUsers } from 'react-icons/fi';
 import { searchUser, addMemberToBoard } from '../../services/api';
 import { toast } from 'react-toastify';
 import { emitBoardChange } from '../../services/socket';
+import UserAvatar from '../common/UserAvatar';
 
 const roleOptions = [
-  { value: 'member', label: 'Member', description: 'Thành viên có thể xem, thêm, sửa thẻ' },
-  { value: 'admin', label: 'Admin', description: 'Quản trị viên có thể thực hiện tất cả thao tác trên bảng' },
-  { value: 'observer', label: 'Observer', description: 'Chỉ được quyền xem, không thể chỉnh sửa' }
+  { value: 'member', label: 'Member', description: 'Can view, add, and edit cards', color: 'green' },
+  { value: 'admin', label: 'Admin', description: 'Can perform all actions on the board', color: 'blue' },
+  { value: 'observer', label: 'Observer', description: 'Can only view, cannot edit', color: 'gray' }
 ];
 
 const InviteBoardMemberModal = ({ isOpen, onClose, boardId, existingMembers = [] }) => {
@@ -24,7 +25,6 @@ const InviteBoardMemberModal = ({ isOpen, onClose, boardId, existingMembers = []
   const modalRef = useRef(null);
 
   useEffect(() => {
-    // Focus search input when modal opens
     if (isOpen && searchInputRef.current) {
       setTimeout(() => {
         searchInputRef.current.focus();
@@ -33,7 +33,6 @@ const InviteBoardMemberModal = ({ isOpen, onClose, boardId, existingMembers = []
   }, [isOpen]);
 
   useEffect(() => {
-    // Handle click outside to close modal
     const handleClickOutside = (event) => {
       if (modalRef.current && !modalRef.current.contains(event.target)) {
         handleClose();
@@ -50,7 +49,6 @@ const InviteBoardMemberModal = ({ isOpen, onClose, boardId, existingMembers = []
   }, [isOpen]);
 
   useEffect(() => {
-    // Reset states when modal closes
     if (!isOpen) {
       setSearchQuery('');
       setSearchResults([]);
@@ -61,7 +59,6 @@ const InviteBoardMemberModal = ({ isOpen, onClose, boardId, existingMembers = []
     }
   }, [isOpen]);
 
-  // Debounce search
   useEffect(() => {
     const handler = setTimeout(() => {
       if (searchQuery.trim()) {
@@ -82,15 +79,12 @@ const InviteBoardMemberModal = ({ isOpen, onClose, boardId, existingMembers = []
     setIsSearching(true);
     try {
       const data = await searchUser(query);
-      
-      // Filter out users who are already members
       const existingMemberIds = existingMembers.map(member => member.user_id);
       const filteredResults = data.users.filter(user => !existingMemberIds.includes(user.id));
-      
       setSearchResults(filteredResults);
     } catch (error) {
       console.error('Error searching users:', error);
-      toast.error('Không thể tìm kiếm người dùng');
+      toast.error('Unable to search users');
     } finally {
       setIsSearching(false);
     }
@@ -115,7 +109,7 @@ const InviteBoardMemberModal = ({ isOpen, onClose, boardId, existingMembers = []
 
   const handleSubmit = async () => {
     if (selectedUsers.length === 0) {
-      toast.warning('Vui lòng chọn ít nhất một người dùng');
+      toast.warning('Please select at least one user');
       return;
     }
 
@@ -123,7 +117,6 @@ const InviteBoardMemberModal = ({ isOpen, onClose, boardId, existingMembers = []
     setSuccessMessages([]);
     setErrorMessages([]);
 
-    // Invite each user individually
     const promises = selectedUsers.map(async user => {
       try {
         const result = await addMemberToBoard(boardId, { 
@@ -131,7 +124,6 @@ const InviteBoardMemberModal = ({ isOpen, onClose, boardId, existingMembers = []
           role: selectedRole 
         });
 
-        // Emit socket event for real-time updates
         emitBoardChange(boardId, 'add_member', {
           board_id: boardId,
           user_id: user.id,
@@ -145,7 +137,7 @@ const InviteBoardMemberModal = ({ isOpen, onClose, boardId, existingMembers = []
         return { 
           user, 
           success: false, 
-          error: error.response?.data?.message || 'Lỗi không xác định'
+          error: error.response?.data?.message || 'Unknown error'
         };
       }
     });
@@ -155,18 +147,16 @@ const InviteBoardMemberModal = ({ isOpen, onClose, boardId, existingMembers = []
     const successes = results.filter(r => r.success);
     const errors = results.filter(r => !r.success);
     
-    setSuccessMessages(successes.map(r => `${r.user.username} đã được thêm vào board`));
-    setErrorMessages(errors.map(r => `Không thể thêm ${r.user.username}: ${r.error}`));
+    setSuccessMessages(successes.map(r => `${r.user.username} has been added to the board`));
+    setErrorMessages(errors.map(r => `Unable to add ${r.user.username}: ${r.error}`));
     
     if (successes.length > 0) {
-      toast.success(`Đã thêm ${successes.length} thành viên vào board`);
+      toast.success(`Added ${successes.length} member(s) to the board`);
     }
 
     if (errors.length === 0) {
-      // If all successful, clear selected users
       setSelectedUsers([]);
     } else {
-      // If there were errors, keep only the failed users
       setSelectedUsers(errors.map(r => r.user));
     }
     
@@ -174,9 +164,8 @@ const InviteBoardMemberModal = ({ isOpen, onClose, boardId, existingMembers = []
   };
 
   const handleClose = () => {
-    // Only confirm if there are selected users and no submission in progress
     if (selectedUsers.length > 0 && !isSubmitting) {
-      if (window.confirm('Bạn có muốn đóng? Các thay đổi chưa lưu sẽ bị mất.')) {
+      if (window.confirm('Do you want to close? Unsaved changes will be lost.')) {
         onClose();
       }
     } else {
@@ -186,189 +175,254 @@ const InviteBoardMemberModal = ({ isOpen, onClose, boardId, existingMembers = []
 
   if (!isOpen) return null;
 
+  const currentRole = roleOptions.find(r => r.value === selectedRole);
+
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div 
         ref={modalRef}
-        className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden"
+        className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden border border-gray-200 dark:border-gray-700"
       >
-        {/* Header */}
-        <div className="flex justify-between items-center px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Thêm thành viên vào bảng
-          </h2>
+        {/* Compact Header */}
+        <div className="relative bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-500 dark:to-blue-800 px-4 py-3">
+          <div className="flex items-center">
+            <div className="flex-shrink-0 mr-3">
+              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                <FiUsers className="w-4 h-4 text-white" />
+              </div>
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-white">
+                Invite Members
+              </h2>
+              <p className="text-blue-100 text-sm mt-0.5">
+                Add members to collaborate
+              </p>
+            </div>
+          </div>
           <button 
             onClick={handleClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            className="absolute top-2 right-2 text-white/80 hover:text-white hover:bg-white/20 rounded-full p-2 transition-all"
           >
-            <FiX className="w-5 h-5" />
+            <FiX className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Search and Results */}
-        <div className="p-6 flex-1 overflow-y-auto">
-          {/* Selected Users */}
-          {selectedUsers.length > 0 && (
-            <div className="mb-4">
-              <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Người dùng đã chọn:
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {selectedUsers.map(user => (
-                  <div 
-                    key={user.id}
-                    className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full px-3 py-1 text-sm flex items-center"
-                  >
-                    <span className="mr-1">{user.username}</span>
-                    <button 
-                      onClick={() => handleRemoveSelectedUser(user.id)}
-                      className="text-blue-600 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-100"
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-4 space-y-4">
+            {/* Selected Users - Only show if any */}
+            {selectedUsers.length > 0 && (
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center mb-2">
+                  <FiCheckCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 mr-2" />
+                  <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                    Selected ({selectedUsers.length})
+                  </h3>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {selectedUsers.map(user => (
+                    <div 
+                      key={user.id}
+                      className="bg-white dark:bg-gray-800 rounded-md px-2 py-1.5 flex items-center space-x-2 shadow-sm border border-blue-200 dark:border-blue-700"
                     >
-                      <FiX className="w-4 h-4" />
-                    </button>
+                      <UserAvatar
+                        user={user}
+                        size="xs"
+                        showOnlineIndicator={false}
+                      />
+                      <span className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-24">
+                        {user.username}
+                      </span>
+                      <button 
+                        onClick={() => handleRemoveSelectedUser(user.id)}
+                        className="text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <FiX className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Search Box */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Search Members
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FiSearch className="h-4 w-4 text-gray-400" />
+                </div>
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  className="block w-full pl-10 pr-3 py-2.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="Enter name or email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  disabled={isSubmitting}
+                />
+                {isSearching && (
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
+                    <div className="animate-spin h-4 w-4 border-2 border-blue-500 rounded-full border-t-transparent"></div>
                   </div>
-                ))}
+                )}
               </div>
             </div>
-          )}
 
-          {/* Search Box */}
-          <div className="relative mb-4">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <FiSearch className="h-5 w-5 text-gray-400" />
-            </div>
-            <input
-              ref={searchInputRef}
-              type="text"
-              className="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Tìm kiếm người dùng theo tên hoặc email..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              disabled={isSubmitting}
-            />
-          </div>
-
-          {/* Search Results */}
-          {isSearching ? (
-            <div className="text-center py-4">
-              <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent mx-auto"></div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Đang tìm kiếm...</p>
-            </div>
-          ) : searchResults.length > 0 ? (
-            <div className="mb-4 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-              <ul className="divide-y divide-gray-200 dark:divide-gray-700 max-h-[200px] overflow-y-auto">
-                {searchResults.map(user => (
-                  <li 
-                    key={user.id}
-                    className="p-3 hover:bg-gray-50 dark:hover:bg-gray-750 cursor-pointer flex items-center"
-                    onClick={() => handleSelectUser(user)}
-                  >
-                    <div className="flex-shrink-0 mr-3">
-                      {user.avatar ? (
-                        <img src={user.avatar} alt={user.username} className="h-8 w-8 rounded-full" />
-                      ) : (
-                        <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center">
-                          <span className="text-white font-medium">
-                            {user.username.charAt(0).toUpperCase()}
-                          </span>
+            {/* Search Results */}
+            {searchResults.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Search Results
+                </h4>
+                <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+                  <div className="max-h-36 overflow-y-auto">
+                    {searchResults.map(user => (
+                      <div 
+                        key={user.id}
+                        className="p-3 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer flex items-center justify-between transition-colors border-b border-gray-100 dark:border-gray-800 last:border-b-0"
+                        onClick={() => handleSelectUser(user)}
+                      >
+                        <div className="flex items-center space-x-3 min-w-0 flex-1">
+                          <UserAvatar
+                            user={user}
+                            size="sm"
+                            showOnlineIndicator={false}
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                              {user.username}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                              {user.email}
+                            </p>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                        {user.username}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                        {user.email}
-                      </p>
-                    </div>
-                    <button className="text-blue-500 hover:text-blue-600 p-1">
-                      <FiUserPlus className="w-5 h-5" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : searchQuery.trim() !== '' && (
-            <div className="text-center py-4 text-gray-500 dark:text-gray-400">
-              Không tìm thấy người dùng phù hợp
-            </div>
-          )}
+                        <button className="text-blue-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 p-2 rounded-md transition-all">
+                          <FiUserPlus className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
-          {/* Role Selection */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Chọn vai trò:
-            </label>
-            <select
-              value={selectedRole}
-              onChange={handleRoleChange}
-              className="block w-full border border-gray-300 dark:border-gray-700 rounded-lg p-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={isSubmitting}
-            >
-              {roleOptions.map(role => (
-                <option key={role.value} value={role.value}>
-                  {role.label}
-                </option>
-              ))}
-            </select>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {roleOptions.find(r => r.value === selectedRole)?.description}
-            </p>
+            {/* No Results */}
+            {searchQuery.trim() !== '' && !isSearching && searchResults.length === 0 && (
+              <div className="text-center py-6">
+                <div className="w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <FiSearch className="w-5 h-5 text-gray-400" />
+                </div>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">
+                  No matching users found
+                </p>
+              </div>
+            )}
+
+            {/* Role Selection */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Member Role
+              </label>
+              <select
+                value={selectedRole}
+                onChange={handleRoleChange}
+                className="block w-full border border-gray-300 dark:border-gray-600 rounded-lg p-2.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                disabled={isSubmitting}
+              >
+                {roleOptions.map(role => (
+                  <option key={role.value} value={role.value}>
+                    {role.label}
+                  </option>
+                ))}
+              </select>
+              {currentRole && (
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-md p-2.5 border border-gray-200 dark:border-gray-700">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    <span className={`inline-block w-2 h-2 rounded-full mr-2 bg-${currentRole.color}-500`}></span>
+                    {currentRole.description}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Status Messages */}
+            {successMessages.length > 0 && (
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                <h4 className="text-sm font-medium text-green-800 dark:text-green-300 flex items-center mb-2">
+                  <FiCheckCircle className="mr-2 w-4 h-4" /> Success
+                </h4>
+                <ul className="space-y-1 text-sm text-green-700 dark:text-green-400">
+                  {successMessages.map((message, idx) => (
+                    <li key={idx} className="flex items-center">
+                      <span className="w-1 h-1 bg-green-500 rounded-full mr-2"></span>
+                      <span className="truncate">{message}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {errorMessages.length > 0 && (
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                <h4 className="text-sm font-medium text-red-800 dark:text-red-300 flex items-center mb-2">
+                  <FiAlertCircle className="mr-2 w-4 h-4" /> Errors
+                </h4>
+                <ul className="space-y-1 text-sm text-red-700 dark:text-red-400">
+                  {errorMessages.map((message, idx) => (
+                    <li key={idx} className="flex items-center">
+                      <span className="w-1 h-1 bg-red-500 rounded-full mr-2"></span>
+                      <span className="truncate">{message}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
-
-          {/* Status Messages */}
-          {successMessages.length > 0 && (
-            <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-              <h4 className="text-sm font-medium text-green-800 dark:text-green-400 flex items-center mb-2">
-                <FiCheckCircle className="mr-1" /> Thành công:
-              </h4>
-              <ul className="list-disc pl-5 text-sm text-green-700 dark:text-green-300">
-                {successMessages.map((message, idx) => (
-                  <li key={idx}>{message}</li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {errorMessages.length > 0 && (
-            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-              <h4 className="text-sm font-medium text-red-800 dark:text-red-400 flex items-center mb-2">
-                <FiAlertCircle className="mr-1" /> Lỗi:
-              </h4>
-              <ul className="list-disc pl-5 text-sm text-red-700 dark:text-red-300">
-                {errorMessages.map((message, idx) => (
-                  <li key={idx}>{message}</li>
-                ))}
-              </ul>
-            </div>
-          )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-850 flex justify-end">
-          <button
-            onClick={handleClose}
-            className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-sm hover:bg-gray-50 dark:hover:bg-gray-650 mr-2"
-          >
-            Đóng
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={selectedUsers.length === 0 || isSubmitting}
-            className={`px-4 py-2 text-white rounded-lg shadow-sm ${
-              selectedUsers.length === 0 || isSubmitting
-                ? 'bg-blue-400 cursor-not-allowed'
-                : 'bg-blue-600 hover:bg-blue-700'
-            }`}
-          >
-            {isSubmitting ? (
-              <div className="flex items-center">
-                <div className="animate-spin h-4 w-4 border-2 border-white rounded-full border-t-transparent mr-2"></div>
-                Đang xử lý...
-              </div>
-            ) : 'Mời thành viên'}
-          </button>
+        <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 px-4 py-3">
+          <div className="flex justify-between items-center">
+            <div className="text-xs text-gray-500 dark:text-gray-400">
+              {selectedUsers.length > 0 && (
+                <span>Will invite {selectedUsers.length} member(s) as {currentRole?.label}</span>
+              )}
+            </div>
+            <div className="flex space-x-3">
+              <button
+                onClick={handleClose}
+                className="px-4 py-2 text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={selectedUsers.length === 0 || isSubmitting}
+                className={`px-5 py-2 text-sm text-white rounded-lg transition-all ${
+                  selectedUsers.length === 0 || isSubmitting
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700'
+                }`}
+              >
+                {isSubmitting ? (
+                  <div className="flex items-center">
+                    <div className="animate-spin h-4 w-4 border-2 border-white rounded-full border-t-transparent mr-2"></div>
+                    Inviting...
+                  </div>
+                ) : (
+                  <div className="flex items-center">
+                    <FiUserPlus className="w-4 h-4 mr-2" />
+                    Invite
+                  </div>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
