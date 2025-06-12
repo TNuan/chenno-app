@@ -2,13 +2,39 @@ import React, { useState, useRef } from 'react';
 import { FiPlus, FiX } from 'react-icons/fi';
 import LabelSelector from './LabelSelector';
 import { getContrastTextColor } from './LabelSelector';
+import api from '../../services/api';
+import { emitBoardChange } from '../../services/socket';
 
 const LabelDisplay = ({ cardData, boardId, canModify, onUpdate }) => {
   const [showLabelSelector, setShowLabelSelector] = useState(false);
-  const labelButtonRef = useRef(null); // Thêm ref cho nút kích hoạt
+  const [isRemoving, setIsRemoving] = useState(false);
+  const labelButtonRef = useRef(null);
 
   const handleLabelUpdate = (updatedCard) => {
     onUpdate(updatedCard);
+  };
+
+  const handleRemoveLabel = async (labelId) => {
+    if (isRemoving) return;
+    
+    setIsRemoving(true);
+    try {
+      // Gọi API để remove label from card
+      await api.delete(`/labels/card/${cardData.id}/${labelId}`);
+      
+      // Cập nhật state local
+      const updatedCard = {
+        ...cardData,
+        labels: cardData.labels.filter(l => l.id !== labelId)
+      };
+      onUpdate(updatedCard);
+      
+    } catch (error) {
+      console.error('Failed to remove label from card:', error);
+      // Có thể hiển thị toast error ở đây
+    } finally {
+      setIsRemoving(false);
+    }
   };
 
   return (
@@ -19,7 +45,7 @@ const LabelDisplay = ({ cardData, boardId, canModify, onUpdate }) => {
         </h4>
         {canModify && (
           <button
-            ref={labelButtonRef} // Gán ref vào nút
+            ref={labelButtonRef}
             onClick={() => setShowLabelSelector(!showLabelSelector)}
             className="p-1 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors"
             title="Add/remove labels"
@@ -50,20 +76,22 @@ const LabelDisplay = ({ cardData, boardId, canModify, onUpdate }) => {
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    // Chuyển logic xóa label vào LabelSelector
-                    const updatedCard = {
-                      ...cardData,
-                      labels: cardData.labels.filter(l => l.id !== label.id)
-                    };
-                    onUpdate(updatedCard);
+                    handleRemoveLabel(label.id);
                   }}
-                  className="absolute right-0 top-0 h-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 px-1 hover:bg-black/20"
+                  disabled={isRemoving}
+                  className={`absolute right-0 top-0 h-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200 px-1 hover:bg-black/20 ${
+                    isRemoving ? 'cursor-not-allowed' : 'cursor-pointer'
+                  }`}
                   style={{ 
                     color: getContrastTextColor(label.color)
                   }}
                   title="Remove label"
                 >
-                  <FiX className="w-3 h-3" />
+                  {isRemoving ? (
+                    <div className="w-3 h-3 animate-spin border border-current border-t-transparent rounded-full"></div>
+                  ) : (
+                    <FiX className="w-3 h-3" />
+                  )}
                 </button>
               )}
             </div>
@@ -81,8 +109,8 @@ const LabelDisplay = ({ cardData, boardId, canModify, onUpdate }) => {
         cardData={cardData}
         boardId={boardId}
         onUpdate={handleLabelUpdate}
-        position="right" // Đổi thành 'right'
-        buttonRef={labelButtonRef} // Truyền ref vào
+        position="right"
+        buttonRef={labelButtonRef}
       />
     </div>
   );

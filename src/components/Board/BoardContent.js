@@ -109,9 +109,18 @@ const BoardContent = ({ board, socketRef }) => {
                     setColumns(prevColumns => 
                         prevColumns.map(col => ({
                             ...col,
-                            cards: col.cards.map(card => 
-                                card.id === data.payload.id ? data.payload : card
-                            )
+                            cards: col.cards.map(card => {
+                                if (card.id === data.payload.id) {
+                                    return {
+                                        ...card,
+                                        ...(data.payload.title !== undefined && { title: data.payload.title }),
+                                        ...(data.payload.assigned_to !== undefined && { assigned_to: data.payload.assigned_to }),
+                                        ...(data.payload.due_date !== undefined && { due_date: data.payload.due_date }),
+                                        ...(data.payload.cover_img !== undefined && { cover_img: data.payload.cover_img })
+                                    };
+                                }
+                                return card;
+                            })
                         }))
                     );
                     break;
@@ -160,6 +169,148 @@ const BoardContent = ({ board, socketRef }) => {
                     })
                 );
                 break;
+
+                case 'comment_added':
+                    console.log('Comment added to card:', data.payload);
+                    setColumns(prevColumns => 
+                        prevColumns.map(col => ({
+                            ...col,
+                            cards: col.cards.map(card => {
+                                if (card.id === data.payload.card_id) {
+                                    return {
+                                        ...card,
+                                        comment_count: (card.comment_count || 0) + 1
+                                    };
+                                }
+                                return card;
+                            })
+                        }))
+                    );
+                    break;
+
+                case 'attachment_added':
+                    console.log('Attachment added to card:', data.payload);
+                    setColumns(prevColumns =>
+                        prevColumns.map(col => ({
+                            ...col,
+                            cards: col.cards.map(card => {
+                                if (card.id === data.payload.card_id) {
+                                    return {
+                                        ...card,
+                                        attachment_count: (card.attachment_count || 0) + 1
+                                    };
+                                }
+                                return card;
+                            })
+                        }))
+                    );
+                    break;
+                case 'attachment_removed':
+                    console.log('Attachment removed from card:', data.payload);
+                    setColumns(prevColumns =>
+                        prevColumns.map(col => ({
+                            ...col,
+                            cards: col.cards.map(card => {
+                                if (card.id === data.payload.card_id) {
+                                    return {
+                                        ...card,
+                                        attachment_count: Math.max((card.attachment_count || 0) - 1, 0)
+                                    };
+                                }
+                                return card;
+                            })
+                        }))
+                    );
+                    break;
+
+                // Thêm xử lý cho label events
+                case 'label_added_to_card':
+                    console.log('Label added to card:', data.payload);
+                    setColumns(prevColumns => 
+                        prevColumns.map(col => ({
+                            ...col,
+                            cards: col.cards.map(card => {
+                                if (card.id === data.payload.card_id) {
+                                    // Thêm label vào card nếu chưa có
+                                    const existingLabelIds = (card.labels || []).map(l => l.id);
+                                    if (!existingLabelIds.includes(data.payload.label.id)) {
+                                        return {
+                                            ...card,
+                                            labels: [
+                                                ...(card.labels || []),
+                                                {
+                                                    id: data.payload.label.id,
+                                                    name: data.payload.label.name,
+                                                    color: data.payload.label.color
+                                                }
+                                            ]
+                                        };
+                                    }
+                                }
+                                return card;
+                            })
+                        }))
+                    );
+                    break;
+
+                case 'label_removed_from_card':
+                    console.log('Label removed from card:', data.payload);
+                    setColumns(prevColumns => 
+                        prevColumns.map(col => ({
+                            ...col,
+                            cards: col.cards.map(card => {
+                                if (card.id == data.payload.card_id) {
+                                    return {
+                                        ...card,
+                                        labels: (card.labels || []).filter(label => 
+                                            label.id != data.payload.label_id
+                                        )
+                                    };
+                                }
+                                return card;
+                            })
+                        }))
+                    );
+                    break;
+
+                case 'label_created':
+                    console.log('Label created:', data.payload);
+                    // Label mới được tạo, có thể cần refresh board labels nếu cần
+                    break;
+
+                case 'label_updated':
+                    console.log('Label updated:', data.payload);
+                    // Cập nhật label trong tất cả cards sử dụng label này
+                    setColumns(prevColumns => 
+                        prevColumns.map(col => ({
+                            ...col,
+                            cards: col.cards.map(card => ({
+                                ...card,
+                                labels: (card.labels || []).map(label => 
+                                    label.id === data.payload.id 
+                                        ? { ...label, ...data.payload }
+                                        : label
+                                )
+                            }))
+                        }))
+                    );
+                    break;
+
+                case 'label_deleted':
+                    console.log('Label deleted:', data.payload);
+                    // Xóa label khỏi tất cả cards
+                    setColumns(prevColumns => 
+                        prevColumns.map(col => ({
+                            ...col,
+                            cards: col.cards.map(card => ({
+                                ...card,
+                                labels: (card.labels || []).filter(label => 
+                                    label.id !== data.payload.id
+                                )
+                            }))
+                        }))
+                    );
+                    break;
 
                 default:
                     // Ignore other change types
