@@ -106,9 +106,9 @@ const LabelSelector = ({
       }
       
       // Emit socket event
-      if (cardData && cardData.board_id) {
-        emitBoardChange(cardData.board_id, 'card_updated', cardData);
-      }
+      // if (cardData && cardData.board_id) {
+      //   emitBoardChange(cardData.board_id, 'card_updated', cardData);
+      // }
     } catch (error) {
       console.error('Failed to update card labels:', error);
     } finally {

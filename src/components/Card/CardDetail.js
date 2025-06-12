@@ -180,8 +180,17 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
       // Lắng nghe khi có comment mới được thêm vào card này
       socketRef.on('board_updated', (data) => {
         console.log('Received board update:', data);
-        
-        if (data.changeType === 'comment_added' && data.payload?.card_id === card.id) {
+        if (data.changeType === 'card_updated' && data.payload?.id=== card.id) {
+          console.log(`Card ${card.id} updated:`, data.payload);
+          // Cập nhật cardData với dữ liệu mới
+          setCardData(prevData => {
+            if (!prevData) return data.payload; // Nếu chưa có cardData, trả về dữ liệu mới
+            return {
+              ...prevData,
+              ...data.payload // Cập nhật các trường mới từ payload
+            };
+          });
+        } else if (data.changeType === 'comment_added' && data.payload?.card_id === card.id) {
           setCardData(prevData => {
             if (!prevData) return prevData;
             
@@ -193,8 +202,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
               ]
             };
           });
-        } 
-        else if (data.changeType === 'attachment_added' && data.payload?.card_id === card.id) {
+        } else if (data.changeType === 'attachment_added' && data.payload?.card_id === card.id) {
           console.log(`New attachment added to card ${card.id}:`, data.payload.attachment);
           
           // Cập nhật cả cardData và attachments state
@@ -212,10 +220,9 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
           
           // Quan trọng: Thêm attachment mới vào state attachments riêng biệt
           setAttachments(prev => [data.payload.attachment, ...prev]);
-        }
-        else if (data.changeType === 'attachment_removed' && data.payload?.card_id === card.id) {
+        } else if (data.changeType === 'attachment_removed' && data.payload?.card_id === card.id) {
           const removedAttachmentId = data.payload.attachment_id;
-          
+
           // Xóa khỏi cả cardData và attachments state
           setCardData(prevData => {
             if (!prevData || !prevData.attachments) return prevData;
@@ -228,15 +235,36 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
           
           // Xóa khỏi attachments state
           setAttachments(prev => prev.filter(att => att.id !== removedAttachmentId));
+        } else if (data.changeType === 'label_added_to_card' && data.payload?.card_id === card.id) {
+          console.log(`Label added to card ${card.id}:`, data.payload.label);
+          
+          // Cập nhật cardData với label mới
+          setCardData(prevData => {
+            if (!prevData) return prevData;
+            
+            return {
+              ...prevData,
+              labels: [
+                ...(prevData.labels || []),
+                data.payload.label
+              ]
+            };
+          });
+        } else if (data.changeType === 'label_removed_from_card' && Number(data.payload?.card_id) === card.id) {
+          const removedLabelId = Number(data.payload.label_id);
+
+          // Xóa khỏi cardData
+          setCardData(prevData => {
+            if (!prevData || !prevData.labels) return prevData;
+            
+            return {
+              ...prevData,
+              labels: prevData.labels.filter(label => label.id !== removedLabelId)
+            };
+          });
         }
       });
   
-      // Clean up
-      return () => {
-        if (socketRef) {
-          socketRef.off('board_updated');
-        }
-      };
     }
   }, [isOpen, card?.id, cardData?.board_id, socketRef]);
 
@@ -277,7 +305,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
         content: newComment.trim()
       });
 
-      // Cập nhật cardData với comment mới
+      // Cập nhật cardData trong CardDetail với comment mới
       setCardData(prevData => ({
         ...prevData,
         comments: [
@@ -285,6 +313,16 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
           response.data.comment
         ]
       }));
+
+      // Chỉ notify parent component để cập nhật comment_count, không thay đổi dữ liệu khác
+      if (onUpdate) {
+        // Tạo object mới chỉ với những field cần thiết cho component cha
+        const updatedCardForParent = {
+          ...card, // Giữ nguyên dữ liệu card gốc từ component cha
+          comment_count: (card.comment_count || 0) + 1 // Chỉ tăng comment_count
+        };
+        onUpdate(updatedCardForParent);
+      }
 
       // Clear the input
       setNewComment('');
@@ -450,13 +488,9 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
 
       // Notify parent component
       if (onUpdate) {
-        onUpdate(updatedCard);
+        onUpdate(response.data.card);
       }
 
-      // Emit socket event for real-time updates
-      // if (cardData && cardData.board_id) {
-      //   emitBoardChange(cardData.board_id, 'card_updated', response.data.card);
-      // }
     } catch (error) {
       console.error('Failed to update card cover', error);
     } finally {
@@ -552,7 +586,16 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
-        
+
+      // Chỉ notify parent component để cập nhật attachment_count, không thay đổi dữ liệu khác
+        if (onUpdate) {
+          // Tạo object mới chỉ với những field cần thiết cho component cha
+          const updatedCardForParent = {
+            ...card, // Giữ nguyên dữ liệu card gốc từ component cha
+            attachment_count: (card.attachment_count || 0) + 1 // Chỉ tăng attachment_count
+          };
+          onUpdate(updatedCardForParent);
+        }
         setShowAttachmentUpload(false);
       })
       .catch(error => {
@@ -1025,12 +1068,9 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                           api.put(`/cards/${card.id}`, cardUpdated)
                           .then(response => {
                             setCardData(cardUpdated);
-                            // if (onUpdate) {
-                            //   onUpdate(response.data.card);
-                            // }
-                            // if (cardData && cardData.board_id) {
-                            //   emitBoardChange(cardData.board_id, 'card_updated', response.data.card);
-                            // }
+                            if (onUpdate) {
+                              onUpdate(response.data.card);
+                            }
                           })
                           .catch(error => {
                             console.error('Failed to update assignee', error);
@@ -1087,12 +1127,9 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                             api.put(`/cards/${card.id}`, cardUpdated)
                             .then(response => {
                               setCardData(cardUpdated);
-                              // if (onUpdate) {
-                              //   onUpdate(response.data.card);
-                              // }
-                              // if (cardData && cardData.board_id) {
-                              //   emitBoardChange(cardData.board_id, 'card_updated', response.data.card);
-                              // }
+                              if (onUpdate) {
+                                onUpdate(response.data.card);
+                              }
                             })
                             .catch(error => {
                               console.error('Failed to update due date', error);
@@ -1312,9 +1349,7 @@ const CardDetail = ({ card, isOpen, onClose, onUpdate, boardMembers = [], canMod
                       if (onUpdate) {
                         onUpdate(updatedCard);
                       }
-                      if (updatedCard && updatedCard.board_id) {
-                        emitBoardChange(updatedCard.board_id, 'card_updated', updatedCard);
-                      }
+
                     }}
                   />
                 </div>
