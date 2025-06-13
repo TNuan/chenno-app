@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Draggable } from 'react-beautiful-dnd';
 import { FiClock, FiUser, FiPaperclip, FiMessageSquare, FiTag, FiArchive } from 'react-icons/fi';
 import { isPast, isToday } from 'date-fns';
+import UserAvatar from '../common/UserAvatar';
 
 // Hàm tính class cho thời hạn
 const getDueDateClass = (dueDate) => {
@@ -78,6 +79,13 @@ const Card = ({ card, index, canModify = true, onClick, boardMembers }) => {
   if (card.is_archived) {
     return null;
   }
+
+  // Tạo user object cho UserAvatar từ data assignee
+  const assigneeUser = card.assigned_to ? {
+    id: card.assigned_to,
+    username: card.assigned_to_name || card.assigned_username,
+    avatar: card.assigned_avatar
+  } : null;
 
   return (
     <Draggable 
@@ -159,10 +167,15 @@ const Card = ({ card, index, canModify = true, onClick, boardMembers }) => {
                 )}
               </div>
               
-              {card.assigned_to && (
-                <div className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xs">
-                  {card.assigned_to_name ? card.assigned_to_name.charAt(0).toUpperCase() : 'U'}
-                </div>
+              {/* Thay thế div đơn giản bằng UserAvatar component */}
+              {assigneeUser && (
+                <UserAvatar
+                  user={assigneeUser}
+                  size="xs"
+                  showOnlineIndicator={false}
+                  className="flex-shrink-0"
+                  ringColor="border-gray-200 dark:border-gray-600"
+                />
               )}
             </div>
           </div>
