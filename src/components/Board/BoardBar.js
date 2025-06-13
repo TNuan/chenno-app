@@ -10,6 +10,11 @@ import { createEditableProps } from '../../utils/contentEditable';
 import { emitBoardChange } from '../../services/socket';
 import InviteBoardMemberModal from './InviteBoardMemberModal';
 import BoardMembersModal from './BoardMembersModal';
+import BoardMenu from './BoardMenu';
+import AboutBoardDropdown from './AboutBoardDropdown';
+import ChangeBackgroundDropdown from './ChangeBackgroundDropdown';
+import LabelsDropdown from './LabelsDropdown';
+import ArchivedItemsDropdown from './ArchivedItemsDropdown';
 import UserAvatar from '../common/UserAvatar';
 
 const BoardBar = ({ board, onUpdate, onlineUsers = [] }) => {
@@ -20,15 +25,21 @@ const BoardBar = ({ board, onUpdate, onlineUsers = [] }) => {
   const [isVisibilityMenuOpen, setIsVisibilityMenuOpen] = useState(false);
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [isMembersModalOpen, setIsMembersModalOpen] = useState(false);
+  const [isAboutDropdownOpen, setIsAboutDropdownOpen] = useState(false);
+  const [isChangeBackgroundOpen, setIsChangeBackgroundOpen] = useState(false);
+  const [isLabelsOpen, setIsLabelsOpen] = useState(false);
+  const [isArchivedItemsOpen, setIsArchivedItemsOpen] = useState(false);
   
   const menuRef = useRef(null);
   const visibilityMenuRef = useRef(null);
+  const changeBackgroundRef = useRef(null);
+  const aboutBoardRef = useRef(null);
   const navigate = useNavigate();
   
   const canEdit = board.user_role === 'owner' || board.user_role === 'admin';
-  
+  const isOwner = board.user_role === 'owner';
 
-  // Handle click outside for main menu
+  // Handle click outside for menus
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -159,6 +170,33 @@ const BoardBar = ({ board, onUpdate, onlineUsers = [] }) => {
     handleBoardTitleSubmit,
     handleBoardTitleCancel
   );
+
+  // Menu item click handlers
+  const handleAboutBoard = () => {
+    setIsAboutDropdownOpen(true);
+  };
+
+  const handleChangeBackground = () => {
+    setIsChangeBackgroundOpen(true);
+  };
+
+  const handlePrintExport = () => {
+    // TODO: Open Print/Export modal
+    console.log('Print, export clicked');
+  };
+
+  const handleLabels = () => {
+    setIsLabelsOpen(true);
+  };
+
+  const handleArchivedItems = () => {
+    setIsArchivedItemsOpen(true);
+  };
+
+  const handleCloseLeavBoard = () => {
+    // TODO: Open Close/Leave Board confirmation modal
+    console.log('Close/Leave board clicked');
+  };
 
   return (
     <>
@@ -298,17 +336,26 @@ const BoardBar = ({ board, onUpdate, onlineUsers = [] }) => {
           {/* More Options */}
           <div className="relative" ref={menuRef}>
             <button
+              ref={changeBackgroundRef}
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="p-1 text-white hover:bg-white/20 rounded transition-colors"
             >
               <FiMoreHorizontal className="w-4 h-4" />
             </button>
 
-            {isMenuOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2">
-                {/* Add menu items here */}
-              </div>
-            )}
+            <BoardMenu
+              isOpen={isMenuOpen}
+              onClose={() => setIsMenuOpen(false)}
+              board={board}
+              canEdit={canEdit}
+              isOwner={isOwner}
+              onAboutBoard={handleAboutBoard}
+              onChangeBackground={handleChangeBackground}
+              onPrintExport={handlePrintExport}
+              onLabels={handleLabels}
+              onArchivedItems={handleArchivedItems}
+              onCloseLeavBoard={handleCloseLeavBoard}
+            />
           </div>
         </div>
       </div>
@@ -327,6 +374,38 @@ const BoardBar = ({ board, onUpdate, onlineUsers = [] }) => {
         boardId={board.id}
         boardMembers={board.members || []}
         currentUserRole={board.user_role}
+      />
+
+      <AboutBoardDropdown
+        isOpen={isAboutDropdownOpen}
+        onClose={() => setIsAboutDropdownOpen(false)}
+        board={board}
+        onUpdate={onUpdate}
+        canEdit={isOwner}
+        anchorRef={changeBackgroundRef}
+      />
+
+      <ChangeBackgroundDropdown
+        isOpen={isChangeBackgroundOpen}
+        onClose={() => setIsChangeBackgroundOpen(false)}
+        board={board}
+        onUpdate={onUpdate}
+        anchorRef={changeBackgroundRef}
+      />
+
+      <LabelsDropdown
+        isOpen={isLabelsOpen}
+        onClose={() => setIsLabelsOpen(false)}
+        board={board}
+        onUpdate={onUpdate}
+        anchorRef={changeBackgroundRef}
+      />
+
+      <ArchivedItemsDropdown
+        isOpen={isArchivedItemsOpen}
+        onClose={() => setIsArchivedItemsOpen(false)}
+        board={board}
+        anchorRef={changeBackgroundRef}
       />
     </>
   );
