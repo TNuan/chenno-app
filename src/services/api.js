@@ -354,4 +354,11 @@ export const uploadAvatar = async (file) => {
   return response.data;
 };
 
+// Archived Cards APIs
+export const getArchivedCards = async (boardId, params = {}) => {
+  const queryParams = new URLSearchParams(params).toString();
+  const url = `/cards/archived/board/${boardId}${queryParams ? `?${queryParams}` : ''}`;
+  return await api.get(url);
+};
+
 export default api;
